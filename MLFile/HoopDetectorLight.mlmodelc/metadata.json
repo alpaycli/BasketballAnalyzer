@@ -1,0 +1,124 @@
+[
+  {
+    "metadataOutputVersion" : "3.0",
+    "shortDescription" : "Basketball hoop(basket) detector.",
+    "outputSchema" : [
+      {
+        "dataType" : "Double",
+        "hasShapeFlexibility" : "1",
+        "isOptional" : "0",
+        "shapeFlexibility" : "0... × 1",
+        "shapeRange" : "[[0, -1], [1, 1]]",
+        "formattedType" : "MultiArray (Double 0 × 1)",
+        "type" : "MultiArray",
+        "shape" : "[0, 1]",
+        "name" : "confidence",
+        "shortDescription" : "Boxes × Class confidence (see user-defined metadata \"classes\")"
+      },
+      {
+        "dataType" : "Double",
+        "hasShapeFlexibility" : "1",
+        "isOptional" : "0",
+        "shapeFlexibility" : "0... × 4",
+        "shapeRange" : "[[0, -1], [4, 4]]",
+        "formattedType" : "MultiArray (Double 0 × 4)",
+        "type" : "MultiArray",
+        "shape" : "[0, 4]",
+        "name" : "coordinates",
+        "shortDescription" : "Boxes × [x, y, width, height] (relative to image size)"
+      }
+    ],
+    "storagePrecision" : "Mixed (Float16, Float32)",
+    "modelParameters" : [
+
+    ],
+    "author" : "Alpay Calalli",
+    "specificationVersion" : 5,
+    "computePrecision" : "Float16",
+    "isUpdatable" : "0",
+    "stateSchema" : [
+
+    ],
+    "availability" : {
+      "macOS" : "11.0",
+      "tvOS" : "14.0",
+      "visionOS" : "1.0",
+      "watchOS" : "unavailable",
+      "iOS" : "14.0",
+      "macCatalyst" : "14.0"
+    },
+    "modelType" : {
+      "name" : "MLModelType_pipeline",
+      "structure" : [
+        {
+          "name" : "MLModelType_visionFeaturePrint"
+        },
+        {
+          "name" : "MLModelType_neuralNetwork"
+        },
+        {
+          "name" : "MLModelType_nonMaximumSuppression"
+        }
+      ]
+    },
+    "inputSchema" : [
+      {
+        "formattedType" : "Image (Color 299 × 299)",
+        "hasSizeFlexibility" : "1",
+        "shortDescription" : "Input image",
+        "sizeRange" : "[[299, -1], [299, -1]]",
+        "width" : "299",
+        "type" : "Image",
+        "isColor" : "1",
+        "height" : "299",
+        "sizeFlexibility" : "299... × 299...",
+        "colorspace" : "RGB",
+        "name" : "image",
+        "isOptional" : "0"
+      },
+      {
+        "isOptional" : "1",
+        "formattedType" : "Double?",
+        "type" : "Double",
+        "name" : "iouThreshold",
+        "shortDescription" : "The maximum allowed overlap (as intersection-over-union ratio) for any pair of output bounding boxes (default: 0.33)"
+      },
+      {
+        "isOptional" : "1",
+        "formattedType" : "Double?",
+        "type" : "Double",
+        "name" : "confidenceThreshold",
+        "shortDescription" : "The minimum confidence score for an output bounding box (default: 0.4)"
+      }
+    ],
+    "classLabels" : [
+      "1"
+    ],
+    "generatedClassName" : "HoopDetectorLight",
+    "userDefinedMetadata" : {
+      "com.apple.createml.version" : "15.0.1",
+      "com.apple.createml.app.tag" : "150.3",
+      "com.apple.createml.app.version" : "6.1",
+      "com.apple.coreml.model.preview.type" : "objectDetector",
+      "iterations" : "1500"
+    },
+    "neuralNetworkLayerTypeHistogram" : {
+      "LoadConstant" : 2,
+      "Concat" : 13,
+      "ActivationReLU" : 20,
+      "Convolution" : 110,
+      "Scale" : 2,
+      "Softmax" : 45,
+      "Squeeze" : 2,
+      "Reshape" : 20,
+      "Permute" : 14,
+      "Multiply" : 2,
+      "ExpandDims" : 2,
+      "Add" : 1,
+      "UnaryExp" : 1,
+      "Slice" : 3,
+      "BatchNorm" : 20
+    },
+    "method" : "predict"
+  }
+]
