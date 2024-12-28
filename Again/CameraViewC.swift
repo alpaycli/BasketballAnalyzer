@@ -54,6 +54,11 @@ class CameraViewController: UIViewController {
     
     // MARK: - Life Cycle
     
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        startObservingStateChanges()
+    }
+    
     override func viewDidDisappear(_ animated: Bool) {
         
         super.viewDidDisappear(animated)
@@ -256,6 +261,10 @@ class CameraViewController: UIViewController {
         
     }
     
+}
+
+extension CameraViewController: GameStateChangeObserver {
+    func gameManagerDidEnter(state: GameManager.State, from previousState: GameManager.State?) {}
 }
 
 extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {

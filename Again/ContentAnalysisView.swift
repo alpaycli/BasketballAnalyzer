@@ -44,13 +44,8 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
         }
         
         func cameraViewController(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) {
+            try? vc?.detectBoard(controller, buffer, orientation)
             vc?.cameraVCDelegateAction(controller, didReceiveBuffer: buffer, orientation: orientation)
-//            guard vc?.boardDetected == false else { return }
-            do {
-                try vc?.detectBoard(controller, buffer, orientation)
-            } catch {
-                print("couldn't detect board:", error.localizedDescription)
-            }
         }
     }
 }
@@ -72,16 +67,33 @@ class ContentAnalysisViewController: UIViewController {
     var recordedVideoSource: AVAsset?
     
     // MARK: - Private Properties
+    private let gameManager = GameManager.shared
+    
     private var cameraViewController = CameraViewController()
     private var trajectoryView = TrajectoryView()
     private let boardBoundingBox = BoundingBoxView()
+    private let playerBoundingBox = BoundingBoxView()
+    private let jointSegmentView = JointSegmentView()
     
-    private var boardRegion: CGRect = .zero
+    private var hoopRegion: CGRect = .zero
     
-    var boardDetected = false
+    private var throwRegion = CGRect.null
+    private var targetRegion = CGRect.null
+    
+    private var trajectoryInFlightPoseObservations = 0
+    private var noObservationFrameCount = 0
+    
+    private let bodyPoseDetectionMinConfidence: VNConfidence = 0.6
+    private let trajectoryDetectionMinConfidence: VNConfidence = 0.9
+    private let bodyPoseRecognizedPointMinConfidence: VNConfidence = 0.1
+    
+    var hoopDetected = false
+    var playerDetected = false
     
     private var setupComplete = false
-    private var detectTrajectoryRequest: VNDetectTrajectoriesRequest!
+    private let detectPlayerRequest = VNDetectHumanBodyPoseRequest()
+    private lazy var detectTrajectoryRequest: VNDetectTrajectoriesRequest! =
+                        VNDetectTrajectoriesRequest(frameAnalysisSpacing: .zero, trajectoryLength: GameConstants.trajectoryLength)
     
     private var hoopDetectionRequest: VNCoreMLRequest!
     
@@ -92,6 +104,8 @@ class ContentAnalysisViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        startObservingStateChanges()
+        setUIElements()
         configureView()
         setupBoardBoundingBox()
         setupDetectHoopRequest()
@@ -111,6 +125,142 @@ class ContentAnalysisViewController: UIViewController {
     
     // MARK: - Private Methods
     
+    // Adjust the throwRegion based on location of the bag.
+    // Move the throwRegion to the right until we reach the target region.
+    func updateTrajectoryRegions() {
+        let trajectoryLocation = trajectoryView.fullTrajectory.currentPoint
+        let didBagCrossCenterOfThrowRegion = trajectoryLocation.x > throwRegion.origin.x + throwRegion.width / 2
+        guard !(throwRegion.contains(trajectoryLocation) && didBagCrossCenterOfThrowRegion) else {
+            return
+        }
+        // Overlap buffer window between throwRegion and targetRegion
+        let overlapWindowBuffer: CGFloat = 50
+        if targetRegion.contains(trajectoryLocation) {
+            // When bag is in target region, set the throwRegion to targetRegion.
+            throwRegion = targetRegion
+        } else if trajectoryLocation.x + throwRegion.width / 2 - overlapWindowBuffer < targetRegion.origin.x {
+            // Move the throwRegion forward to have the bag at the center.
+            throwRegion.origin.x = trajectoryLocation.x - throwRegion.width / 2
+        }
+        trajectoryView.roi = throwRegion
+    }
+    
+    func processTrajectoryObservations(_ controller: CameraViewController, _ results: [VNTrajectoryObservation]) {
+        if self.trajectoryView.inFlight && results.count < 1 {
+            // The trajectory is already in flight but VNDetectTrajectoriesRequest doesn't return any trajectory observations.
+            self.noObservationFrameCount += 1
+            if self.noObservationFrameCount > GameConstants.noObservationFrameLimit {
+                // Ending the throw as we don't see any observations in consecutive GameConstants.noObservationFrameLimit frames.
+//                self.updatePlayerStats(controller)
+            }
+        } else {
+            for path in results where path.confidence > trajectoryDetectionMinConfidence {
+                // VNDetectTrajectoriesRequest has returned some trajectory observations.
+                // Process the path only when the confidence is over 90%.
+                self.trajectoryView.duration = path.timeRange.duration.seconds
+                self.trajectoryView.points = path.detectedPoints
+                self.trajectoryView.performTransition(.fadeIn, duration: 0.25)
+                if !self.trajectoryView.fullTrajectory.isEmpty {
+                    // Hide the previous throw metrics once a new throw is detected.
+//                    if !self.dashboardView.isHidden {
+//                        self.resetKPILabels()
+//                    }
+                    self.updateTrajectoryRegions()
+                    if self.trajectoryView.isThrowComplete {
+                        // Update the player statistics once the throw is complete.
+//                        self.updatePlayerStats(controller)
+                        trajectoryView.resetPath()
+                    }
+                }
+                self.noObservationFrameCount = 0
+            }
+        }
+    }
+    
+    func updateBoundingBox(_ boundingBox: BoundingBoxView, withRect rect: CGRect?) {
+        // Update the frame for player bounding box
+        boundingBox.frame = rect ?? .zero
+        boundingBox.performTransition((rect == nil ? .fadeOut : .fadeIn), duration: 0.1)
+    }
+    
+    func updateBoundingBox(_ boundingBox: BoundingBoxView, withViewRect rect: CGRect?, visionRect: CGRect) {
+        DispatchQueue.main.async {
+            boundingBox.frame = rect ?? .zero
+            boundingBox.visionRect = visionRect
+            if rect == nil {
+                boundingBox.performTransition(.fadeOut, duration: 0.1)
+            } else {
+                boundingBox.performTransition(.fadeIn, duration: 0.1)
+            }
+        }
+    }
+
+    private func humanBoundingBox(for observation: VNHumanBodyPoseObservation) -> CGRect {
+        var box = CGRect.zero
+        var normalizedBoundingBox = CGRect.null
+        // Process body points only if the confidence is high.
+        guard observation.confidence > bodyPoseDetectionMinConfidence, let points = try? observation.recognizedPoints(forGroupKey: .all) else {
+            return box
+        }
+        // Only use point if human pose joint was detected reliably.
+        for (_, point) in points where point.confidence > bodyPoseRecognizedPointMinConfidence {
+            normalizedBoundingBox = normalizedBoundingBox.union(CGRect(origin: point.location, size: .zero))
+        }
+        if !normalizedBoundingBox.isNull {
+            box = normalizedBoundingBox
+        }
+        // Fetch body joints from the observation and overlay them on the player.
+        let joints = getBodyJointsFor(observation: observation)
+        DispatchQueue.main.async {
+            print("*joints", joints)
+            self.jointSegmentView.joints = joints
+        }
+        // Store the body pose observation in playerStats when the game is in TrackThrowsState.
+        // We will use these observations for action classification once the throw is complete.
+//        if gameManager.stateMachine.currentState is GameManager.TrackThrowsState {
+//            playerStats.storeObservation(observation)
+//            if trajectoryView.inFlight {
+//                trajectoryInFlightPoseObservations += 1
+//            }
+//        }
+        return box
+    }
+    
+    // Define regions to filter relavant trajectories for the game
+    // throwRegion: Region to the right of the player to detect start of throw
+    // targetRegion: Region around the board to determine end of throw
+    private func resetTrajectoryRegions() {
+        DispatchQueue.main.async {
+            let boardRegion = self.gameManager.boardRegion
+            let playerRegion = self.playerBoundingBox.frame
+            print("*boardregion", boardRegion)
+            print("*playerregion", playerRegion)
+            let throwWindowXBuffer: CGFloat = 50
+            let throwWindowYBuffer: CGFloat = 50
+            let targetWindowXBuffer: CGFloat = 50
+            let throwRegionWidth: CGFloat = 400
+            self.throwRegion = CGRect(x: playerRegion.maxX + throwWindowXBuffer, y: 0, width: throwRegionWidth, height: playerRegion.maxY - throwWindowYBuffer)
+            self.targetRegion = CGRect(x: boardRegion.minX - targetWindowXBuffer, y: 0,
+                                  width: boardRegion.width + 2 * targetWindowXBuffer, height: boardRegion.maxY)
+        }
+    }
+    
+    private func setUIElements() {
+//        resetKPILabels()
+        playerBoundingBox.borderColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 1)
+        playerBoundingBox.backgroundOpacity = 0
+        playerBoundingBox.isHidden = true
+        view.addSubview(playerBoundingBox)
+        view.addSubview(jointSegmentView)
+        view.addSubview(trajectoryView)
+//        gameStatusLabel.text = "Waiting for player"
+        // Set throw type counters
+//        underhandThrowView.throwType = .underhand
+//        overhandThrowView.throwType = .overhand
+//        underlegThrowView.throwType = .underleg
+//        scoreLabel.attributedText = getScoreLabelAttributedStringForScore(0)
+    }
+    
     private func configureView() {
         
         // Set up the video layers.
@@ -122,6 +272,10 @@ class ContentAnalysisViewController: UIViewController {
         cameraViewController.endAppearanceTransition()
         cameraViewController.didMove(toParent: self)
         
+        view.bringSubviewToFront(playerBoundingBox)
+        view.bringSubviewToFront(jointSegmentView)
+        view.bringSubviewToFront(trajectoryView)
+//
         do {
             if recordedVideoSource != nil {
                 // Start reading the video.
@@ -136,9 +290,6 @@ class ContentAnalysisViewController: UIViewController {
         }
         
 //        cameraViewController.outputDelegate = self
-        
-        // Add a custom trajectory view for overlaying trajectories.
-        view.addSubview(trajectoryView)
                 
         // TODO: add close button
     }
@@ -150,108 +301,67 @@ class ContentAnalysisViewController: UIViewController {
 extension ContentAnalysisViewController {
     func cameraVCDelegateAction(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) {
         // video camera actions
-        let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer,
-                                                  orientation: orientation,
-                                                  options: [:])
-        
-        let normalizedFrame = CGRect(x: 0, y: 0.4, width: 1, height: 0.5)
-        DispatchQueue.main.async {
-            // Get the frame of the rendered view.
-            print("trajectory frame set", controller.viewRectForVisionRect(normalizedFrame))
-            self.trajectoryView.frame = controller.viewRectForVisionRect(normalizedFrame)
+        let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
+        if gameManager.stateMachine.currentState is GameManager.TrackThrowsState {
+            DispatchQueue.main.async {
+                // Get the frame of rendered view
+                let normalizedFrame = CGRect(x: 0, y: 0, width: 1, height: 1)
+                self.jointSegmentView.frame = controller.viewRectForVisionRect(normalizedFrame)
+                self.trajectoryView.frame = controller.viewRectForVisionRect(normalizedFrame)
+            }
+            // Perform the trajectory request in a separate dispatch queue.
+//            trajectoryQueue.async {
+                do {
+                    try visionHandler.perform([self.detectTrajectoryRequest])
+                    if let results = self.detectTrajectoryRequest.results {
+                        print("*trajectoryresults", results)
+                        DispatchQueue.main.async   {
+                            self.processTrajectoryObservations(controller, results)
+                        }
+                    }
+                } catch {
+                    print("error", error.localizedDescription)
+                }
+//            }
         }
         
-        self.setUpDetectTrajectoriesRequestWithMaxDimension()
         
-        guard let detectTrajectoryRequest else {
-            print("Failed to retrieve a trajectory request.")
-            return
+        
+        if !(self.trajectoryView.inFlight && self.trajectoryInFlightPoseObservations >= GameConstants.maxTrajectoryInFlightPoseObservations) {
+            do {
+                try visionHandler.perform([detectPlayerRequest])
+                if let result = detectPlayerRequest.results?.first {
+                    let box = humanBoundingBox(for: result)
+                    let boxView = playerBoundingBox
+                    DispatchQueue.main.async {
+                        let inset: CGFloat = -20.0
+                        let viewRect = controller.viewRectForVisionRect(box).insetBy(dx: inset, dy: inset)
+                        self.updateBoundingBox(boxView, withRect: viewRect)
+                        if !self.playerDetected && !boxView.isHidden {
+//                            self.gameStatusLabel.alpha = 0
+                            self.resetTrajectoryRegions()
+                            self.gameManager.stateMachine.enter(GameManager.DetectedPlayerState.self)
+                        }
+                    }
+                }
+            } catch {
+                print("error", error.localizedDescription)
+            }
+        } else {
+            // Hide player bounding box
+            DispatchQueue.main.async {
+                if !self.playerBoundingBox.isHidden {
+                    self.playerBoundingBox.isHidden = true
+                    self.jointSegmentView.resetView()
+                }
+            }
         }
-        
-        do {
-            // Following optional bounds by checking for the moving average radius
-            // of the trajectories the app is looking for.
-            //            detectTrajectoryRequest.objectMinimumNormalizedRadius = 10.0 / Float(1920.0)
-            //            detectTrajectoryRequest.objectMaximumNormalizedRadius = 30.0 / Float(1920.0)
-            
-            // Help manage the real-time use case to improve the precision versus delay tradeoff.
-            //            detectTrajectoryRequest.targetFrameTime = CMTimeMake(value: 1, timescale: 60)
-            
-            // The region of interest where the object is moving in the normalized image space.
-            detectTrajectoryRequest.regionOfInterest = normalizedFrame
-            //
-            try visionHandler.perform([detectTrajectoryRequest])
-        } catch {
-            print("Failed to perform the trajectory request: \(error.localizedDescription)")
-            return
-        }
-        
     }
 }
 
 // MARK: - Detect hoop stuff
 
 extension ContentAnalysisViewController {
-    /* func analyzeBoardContours(_ contours: [VNContour]) -> (edgePath: CGPath, holePath: CGPath)? {
-        // Simplify contours and ignore resulting contours with less than 3 points.
-        let polyContours = contours.compactMap { (contour) -> VNContour? in
-            guard let polyContour = try? contour.polygonApproximation(epsilon: 0.01),
-                  polyContour.pointCount >= 3 else {
-                return nil
-            }
-            return polyContour
-        }
-        // Board contour is the contour with the largest amount of points.
-        guard let boardContour = polyContours.max(by: { $0.pointCount < $1.pointCount }) else {
-            return nil
-        }
-        // First, find the board edge which is the longest diagonal segment of the contour
-        // located in the top part of the board's bounding box.
-        let contourPoints = boardContour.normalizedPoints.map { return CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) }
-        let diagonalThreshold = CGFloat(0.02)
-        var largestDiff = CGFloat(0.0)
-        let boardPath = UIBezierPath()
-        let countLessOne = contourPoints.count - 1
-        // Both points should be in the top 2/3rds of the board's bounding box.
-        // Additionally one of them should be in the left half
-        // and the other on in the right half of the board's bounding box.
-        for (point1, point2) in zip(contourPoints.prefix(countLessOne), contourPoints.suffix(countLessOne)) where
-            min(point1.x, point2.x) < 0.5 && max(point1.x, point2.x) > 0.5 && point1.y >= 0.3 && point2.y >= 0.3 {
-            let diffX = abs(point1.x - point2.x)
-            let diffY = abs(point1.y - point2.y)
-            guard diffX > diagonalThreshold && diffY > diagonalThreshold else {
-                // This is not a diagonal line, skip this segment.
-                continue
-            }
-            if diffX + diffY > largestDiff {
-                largestDiff = diffX + diffY
-                boardPath.removeAllPoints()
-                boardPath.move(to: point1)
-                boardPath.addLine(to: point2)
-            }
-        }
-        guard largestDiff > 0 else {
-            return nil
-        }
-        // Finally, find the hole contorur which should be located in the top right quadrant
-        // of the board's bounding box.
-        var holePath: CGPath?
-        for contour in polyContours where contour != boardContour {
-            let normalizedPath = contour.normalizedPath
-            let normalizedBox = normalizedPath.boundingBox
-            if normalizedBox.minX >= 0.5 && normalizedBox.minY >= 0.5 {
-                holePath = normalizedPath
-                break
-            }
-        }
-        // Return nil if we failed to find the hole.
-        guard let detectedHolePath = holePath else {
-            return nil
-        }
-        
-        return (boardPath.cgPath, detectedHolePath)
-    } */
-    
     fileprivate func detectBoard(_ controller: CameraViewController, _ buffer: CMSampleBuffer, _ orientation: CGImagePropertyOrientation) throws {
         // This is where we detect the board.
         let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
@@ -296,7 +406,8 @@ extension ContentAnalysisViewController {
             
             DispatchQueue.main.sync {
                 // Save board region
-                boardRegion = boardBoundingBox.frame
+                hoopRegion = boardBoundingBox.frame
+                gameManager.boardRegion = boardBoundingBox.frame
 //                print(gameManager.boardRegion)
                 // Calculate board length based on the bounding box of the edge.
                 let edgeNormalizedBB = boardPath.boundingBox
@@ -309,24 +420,11 @@ extension ContentAnalysisViewController {
                 boardBoundingBox.visionPath = highlightPath.cgPath
                 boardBoundingBox.borderColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0.199807363)
                 
-                boardDetected = true
-//                self.gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
+                self.gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
             }
         }
     }
 
-    func updateBoundingBox(_ boundingBox: BoundingBoxView, withViewRect rect: CGRect?, visionRect: CGRect) {
-        DispatchQueue.main.async {
-            boundingBox.frame = rect ?? .zero
-            boundingBox.visionRect = visionRect
-            if rect == nil {
-                boundingBox.performTransition(.fadeOut, duration: 0.1)
-            } else {
-                boundingBox.performTransition(.fadeIn, duration: 0.1)
-            }
-        }
-    }
-    
     private func setupBoardBoundingBox() {
         boardBoundingBox.borderColor = #colorLiteral(red: 1, green: 0.5763723254, blue: 0, alpha: 1)
         boardBoundingBox.borderWidth = 2
@@ -352,8 +450,54 @@ extension ContentAnalysisViewController {
     }
 }
 
+extension ContentAnalysisViewController: GameStateChangeObserver {
+    func gameManagerDidEnter(state: GameManager.State, from previousState: GameManager.State?) {
+        print("gamemanager.state", state)
+        switch state {
+        case is GameManager.DetectedPlayerState:
+            playerDetected = true
+//            playerStats.reset()
+            playerBoundingBox.performTransition(.fadeOut, duration: 1.0)
+//            gameStatusLabel.text = "Go"
+//            gameStatusLabel.perform(transitions: [.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1) {
+                self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
+//            }
+        case is GameManager.TrackThrowsState:
+            resetTrajectoryRegions()
+            trajectoryView.roi = throwRegion
+        case is GameManager.DetectedBoardState:
+//            setupStage =  .setupComplete
+//            statusLabel.text = "Board Detected"
+//            statusLabel.perform(transitions: [.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1.5) {
+                self.gameManager.stateMachine.enter(GameManager.DetectingPlayerState.self)
+//            }
+        case is GameManager.ThrowCompletedState: break
+//            dashboardView.speed = lastThrowMetrics.releaseSpeed
+//            dashboardView.animateSpeedChart()
+//            playerStats.adjustMetrics(score: lastThrowMetrics.score, speed: lastThrowMetrics.releaseSpeed,
+//                                      releaseAngle: lastThrowMetrics.releaseAngle, throwType: lastThrowMetrics.throwType)
+//            playerStats.resetObservations()
+//            trajectoryInFlightPoseObservations = 0
+//            self.updateKPILabels()
+//
+//            gameStatusLabel.text = lastThrowMetrics.score.rawValue > 0 ? "+\(lastThrowMetrics.score.rawValue)" : ""
+//            gameStatusLabel.perform(transitions: [.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1) {
+//                if self.playerStats.throwCount == GameConstants.maxThrows {
+//                    self.gameManager.stateMachine.enter(GameManager.ShowSummaryState.self)
+//                } else {
+//                    self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
+//                }
+//            }
+        default:
+            break
+        }
+    }
+}
+
+
 // MARK: - Trajectory stuff
 
+/*
 extension ContentAnalysisViewController {
     private func processTrajectoryObservation(results: [VNTrajectoryObservation]) {
         
@@ -395,16 +539,15 @@ extension ContentAnalysisViewController {
             }
         }
         
-        /**
-         Filter the trajectory with the following conditions:
-         - The trajectory moves from left to right.
-         - The trajectory starts in the first half of the region of interest.
-         - The trajectory length increases to 8.
-         - The trajectory contains a parabolic equation constant a, less than or equal to 0, and implies there
-         are either straight lines or downward-facing lines.
+        
+//         Filter the trajectory with the following conditions:
+//         - The trajectory moves from left to right.
+//         - The trajectory starts in the first half of the region of interest.
+//         - The trajectory length increases to 8.
+//         - The trajectory contains a parabolic equation constant a, less than or equal to 0, and implies there
+//         are either straight lines or downward-facing lines.
          
-         Add additional filters based on trajectory speed, location, and properties.
-         */
+//         Add additional filters based on trajectory speed, location, and properties.
         if trajectoryDictionary[trajectory.uuid.uuidString]!.first!.x < trajectoryDictionary[trajectory.uuid.uuidString]!.last!.x,
             trajectoryDictionary[trajectory.uuid.uuidString]!.first!.x < 0.5,
             trajectoryDictionary[trajectory.uuid.uuidString]!.count >= 8,
@@ -426,12 +569,11 @@ extension ContentAnalysisViewController {
             return []
         }
         
-        print("**/basePointX", basePointX)
-        /**
-         This is inside region-of-interest space where both x and y range between 0.0 and 1.0.
-         If a trajectory begins too far from a fixed region, extrapolate it back
-         to that region using the available quadratic equation coefficients.
-         */
+        print("*basePointX", basePointX)
+        
+//         This is inside region-of-interest space where both x and y range between 0.0 and 1.0.
+//         If a trajectory begins too far from a fixed region, extrapolate it back
+//         to that region using the available quadratic equation coefficients.
          if basePointX < 0.9, basePointX > 0.5 { // Right-to-left correction
             
             // Compute the initial trajectory location points based on the average
@@ -508,12 +650,12 @@ extension ContentAnalysisViewController {
             return
         }
         
-        /**
-         Define what the sample app looks for, and how to handle the output trajectories.
-         Setting the frame time spacing to (10, 600) so the framework looks for trajectories after each 1/60 second of video.
-         Setting the trajectory length to 6 so the framework returns trajectories of a length of 6 or greater.
-         Use a shorter length for real-time apps, and use longer lengths to observe finer and longer curves.
-         */
+        
+//         Define what the sample app looks for, and how to handle the output trajectories.
+//         Setting the frame time spacing to (10, 600) so the framework looks for trajectories after each 1/60 second of video.
+//         Setting the trajectory length to 6 so the framework returns trajectories of a length of 6 or greater.
+//         Use a shorter length for real-time apps, and use longer lengths to observe finer and longer curves.
+         
         detectTrajectoryRequest = VNDetectTrajectoriesRequest(frameAnalysisSpacing: CMTime(value: 10, timescale: 600),
                                                               trajectoryLength: 3) { [weak self] (request: VNRequest, error: Error?) -> Void in
             
@@ -532,4 +674,19 @@ extension ContentAnalysisViewController {
         setupComplete = true
         
     }
+}
+*/
+
+func getBodyJointsFor(observation: VNHumanBodyPoseObservation) -> ([VNHumanBodyPoseObservation.JointName: CGPoint]) {
+    var joints = [VNHumanBodyPoseObservation.JointName: CGPoint]()
+    guard let identifiedPoints = try? observation.recognizedPoints(.all) else {
+        return joints
+    }
+    for (key, point) in identifiedPoints {
+        guard point.confidence > 0.1 else { continue }
+        if jointsOfInterest.contains(key) {
+            joints[key] = point.location
+        }
+    }
+    return joints
 }

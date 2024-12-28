@@ -47,10 +47,10 @@ struct MainView: View {
                 ContentAnalysisView(recordedVideoSource: recordedVideoSource)
                     .zIndex(99)
                 
-                CameraView(recordedVideoAsset: recordedVideoSource)
-                    .onTapGesture {
-                        showFileImporter = true
-                    }
+//                CameraView(recordedVideoAsset: recordedVideoSource)
+//                    .onTapGesture {
+//                        showFileImporter = true
+//                    }
             } else {
                 Button("Import video") { showFileImporter = true }
                     .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
