@@ -291,8 +291,6 @@ extension ContentAnalysisViewController {
             }
         }
         
-        
-        
         if !(self.trajectoryView.inFlight && self.trajectoryInFlightPoseObservations >= GameConstants.maxTrajectoryInFlightPoseObservations) {
             do {
                 try visionHandler.perform([detectPlayerRequest])
@@ -485,6 +483,8 @@ extension ContentAnalysisViewController {
                 aboveRimBallLocationView.backgroundColor = UIColor.red.withAlphaComponent(0.8)
                 aboveRimBallLocationView.layer.cornerRadius = pointSize/2  // Makes it circular
                 self.view.addSubview(aboveRimBallLocationView)
+                
+                print("trajectoryView.duration", trajectoryView.duration)
                 
                 // Ending the throw as we don't see any observations in consecutive GameConstants.noObservationFrameLimit frames.
 //                self.updatePlayerStats(controller)

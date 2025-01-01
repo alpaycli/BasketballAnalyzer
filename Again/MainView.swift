@@ -31,18 +31,20 @@ struct MainView: View {
     
     @State private var trajectoryDictionary: [String: [VNPoint]] = [:]
     
+    @State private var isLiveCameraSelected = false
+    
     var body: some View {
         ZStack {
             if let recordedVideoSource {
-                if let boardRect {
-                    Path(boardRect)
-                        .stroke(.primary, lineWidth: 2)
-                        .zIndex(100)
-                        .onChange(of: boardRect) { old, new in
-                            print("boardrect", new)
-                        }
-//                    Path(roundedRect: boardRect, cornerRadius: 5)
-                }
+//                if let boardRect {
+//                    Path(boardRect)
+//                        .stroke(.primary, lineWidth: 2)
+//                        .zIndex(100)
+//                        .onChange(of: boardRect) { old, new in
+//                            print("boardrect", new)
+//                        }
+////                    Path(roundedRect: boardRect, cornerRadius: 5)
+//                }
                 
                 ContentAnalysisView(recordedVideoSource: recordedVideoSource)
                     .zIndex(99)
@@ -51,55 +53,43 @@ struct MainView: View {
 //                    .onTapGesture {
 //                        showFileImporter = true
 //                    }
+            } else if isLiveCameraSelected {
+                ContentAnalysisView(recordedVideoSource: nil)
             } else {
-                Button("Import video") { showFileImporter = true }
-                    .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
-                        switch result {
-                        case .success(let success):
-                            print(success.absoluteURL)
-                            let selectedFileURL = success.absoluteURL
-                            if selectedFileURL.startAccessingSecurityScopedResource() {
-                                let fileManager = FileManager.default
-                                if fileManager.fileExists(atPath: selectedFileURL.path) {
-                                    print("FILE AVAILABLE")
-                                } else {
-                                    print("FILE NOT AVAILABLE")
-                                }
-                                
-                                var error: NSError?
-                                
-                                NSFileCoordinator().coordinate(
-                                    readingItemAt: selectedFileURL, options: .forUploading, error: &error) { url in
-                                        print("coordinated URL", url)
-                                        let coordinatedURL = url
-                                        
-//                                        isShowingFileDetails = false
-//                                        importedFileURL = selectedFileURL
-                                        
-                                        do {
-                                            let resources = try selectedFileURL.resourceValues(forKeys:[.fileSizeKey])
-                                            let fileSize = resources.fileSize!
-                                            print ("File Size is \(fileSize)")
-                                        } catch {
-                                            print("Error: \(error)")
-                                        }
-                                    }
-                            }
-                            Task {
-                                await MainActor.run {
-                                    recordedVideoSource = AVURLAsset(url: success.absoluteURL)
-                                }
-                            }
-                        case .failure(let failure):
-                            print("failure", failure.localizedDescription)
-                        }
-                    })
-//                    .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
-                    .onChange(of: photo) { oldValue, newValue in
-                        newValue?.getURL(completionHandler: { result in
+                VStack {
+                    Button("Import video") { showFileImporter = true }
+                        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
                             switch result {
                             case .success(let success):
                                 print(success.absoluteURL)
+                                let selectedFileURL = success.absoluteURL
+                                if selectedFileURL.startAccessingSecurityScopedResource() {
+                                    let fileManager = FileManager.default
+                                    if fileManager.fileExists(atPath: selectedFileURL.path) {
+                                        print("FILE AVAILABLE")
+                                    } else {
+                                        print("FILE NOT AVAILABLE")
+                                    }
+                                    
+                                    var error: NSError?
+                                    
+                                    NSFileCoordinator().coordinate(
+                                        readingItemAt: selectedFileURL, options: .forUploading, error: &error) { url in
+                                            print("coordinated URL", url)
+                                            let coordinatedURL = url
+                                            
+                                            //                                        isShowingFileDetails = false
+                                            //                                        importedFileURL = selectedFileURL
+                                            
+                                            do {
+                                                let resources = try selectedFileURL.resourceValues(forKeys:[.fileSizeKey])
+                                                let fileSize = resources.fileSize!
+                                                print ("File Size is \(fileSize)")
+                                            } catch {
+                                                print("Error: \(error)")
+                                            }
+                                        }
+                                }
                                 Task {
                                     await MainActor.run {
                                         recordedVideoSource = AVURLAsset(url: success.absoluteURL)
@@ -109,7 +99,27 @@ struct MainView: View {
                                 print("failure", failure.localizedDescription)
                             }
                         })
+                    //                    .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
+                        .onChange(of: photo) { oldValue, newValue in
+                            newValue?.getURL(completionHandler: { result in
+                                switch result {
+                                case .success(let success):
+                                    print(success.absoluteURL)
+                                    Task {
+                                        await MainActor.run {
+                                            recordedVideoSource = AVURLAsset(url: success.absoluteURL)
+                                        }
+                                    }
+                                case .failure(let failure):
+                                    print("failure", failure.localizedDescription)
+                                }
+                            })
+                        }
+                    
+                    Button("Live Camera") {
+                        isLiveCameraSelected = true
                     }
+                }
             }// file:///private/var/mobile/Containers/Shared/AppGroup/8E90476D-E920-48BC-A323-B5B2BB3B9CCB/File%20Provider%20Storage/slowed2.mov
             // file:///var/mobile/Containers/Data/Application/8F2C40F3-8E58-47E0-ABFB-DC98E212A3C1/Documents/CA9B33A0-E68A-4396-8073-A6FCE76F2BE2.mov
 
