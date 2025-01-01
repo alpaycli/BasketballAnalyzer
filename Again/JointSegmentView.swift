@@ -85,3 +85,17 @@ let jointsOfInterest: [VNHumanBodyPoseObservation.JointName] = [
     .rightKnee,
     .rightAnkle
 ]
+
+func getBodyJointsFor(observation: VNHumanBodyPoseObservation) -> ([VNHumanBodyPoseObservation.JointName: CGPoint]) {
+    var joints = [VNHumanBodyPoseObservation.JointName: CGPoint]()
+    guard let identifiedPoints = try? observation.recognizedPoints(.all) else {
+        return joints
+    }
+    for (key, point) in identifiedPoints {
+        guard point.confidence > 0.1 else { continue }
+        if jointsOfInterest.contains(key) {
+            joints[key] = point.location
+        }
+    }
+    return joints
+}

@@ -10,17 +10,23 @@ import Vision
 import SwiftUI
 import SpriteKit
 
+extension Collection {
+    // Returns the element at the specified index if it is within bounds, otherwise nil.
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
 
 class TrajectoryView: UIView, AnimatedTransitioning {
     var roi = CGRect.null
     var inFlight = false
-    var outOfROIPoints = 0
+    
     var fullTrajectory = UIBezierPath()
     var duration = 0.0
     var speed = 0.0
     var points: [VNPoint] = [] {
         didSet {
-            if isTrajectoryMovingForward {
+            if isTrajectoryInTopOfScreen {
                 updatePathLayer()
             }
         }
@@ -31,23 +37,26 @@ class TrajectoryView: UIView, AnimatedTransitioning {
     private let shadowLayer = CAShapeLayer()
 
     private var distanceWithCurrentTrajectory: CGFloat = 0
-    private var isTrajectoryMovingForward: Bool {
-        // Check if the trajectory is moving from left to right
-        if let firstPoint = points.first, let lastPoint = points.last {
-            return lastPoint.location.x > firstPoint.location.x
+//    private var isTrajectoryMovingForward: Bool {
+//        // Check if the trajectory is moving from left to right
+//        if let firstPoint = points.first, let lastPoint = points.last {
+//            return lastPoint.location.x > firstPoint.location.x
+//        }
+//        return false
+//    }
+    
+    private var isTrajectoryInTopOfScreen: Bool {
+        if let middlePoint = points[safe: points.count / 2] {
+            return middlePoint.location.y > 0.5
         }
+        
         return false
     }
-
-    var isThrowComplete: Bool {
-        // Mark throw as complete if we don't get any trajectory observations in our roi
-        // for consecutive GameConstants.noObservationFrameLimit frames
-        if inFlight && outOfROIPoints > GameConstants.noObservationFrameLimit {
-            return true
-        }
-        return false
+    
+    func lastLocationAboveObject(_ object: CGRect) -> CGPoint? {
+        points.last(where: { $0.y > object.maxY })?.location
     }
-
+    
     var finalBagLocation: CGPoint {
         // Normalized final bag location
         let bagLocation = fullTrajectory.currentPoint
@@ -69,7 +78,6 @@ class TrajectoryView: UIView, AnimatedTransitioning {
 
     func resetPath() {
         inFlight = false
-        outOfROIPoints = 0
         distanceWithCurrentTrajectory = 0
         fullTrajectory.removeAllPoints()
         pathLayer.path = fullTrajectory.cgPath
@@ -86,7 +94,7 @@ class TrajectoryView: UIView, AnimatedTransitioning {
     }
 
     private func setupLayer() {
-        shadowLayer.lineWidth = 12.0
+        shadowLayer.lineWidth = 3.0
         shadowLayer.lineCap = .round
         shadowLayer.fillColor = UIColor.clear.cgColor
         shadowLayer.strokeColor = #colorLiteral(red: 0.9882352941, green: 0.4666666667, blue: 0, alpha: 0.4519210188).cgColor
@@ -120,6 +128,12 @@ class TrajectoryView: UIView, AnimatedTransitioning {
         if inFlight {
             distanceWithCurrentTrajectory = startScaled.distance(to: fullTrajectory.currentPoint)
         }
+        
+//        print("1.", roi.contains(trajectory.currentPoint), "roi:", roi, ".contains(", trajectory.currentPoint, ")")
+//        print("2.", (inFlight && roi.contains(startScaled)), "inFlight:", inFlight, "roi:", roi, ".contains(", startScaled, ")")
+//        print("3.", distanceWithCurrentTrajectory < GameConstants.maxDistanceWithCurrentTrajectory, "distanceWithCurrentTrajectory:", distanceWithCurrentTrajectory, "maxDistanceWithCurrentTrajectory:", GameConstants.maxDistanceWithCurrentTrajectory)
+//        print("---")
+//              
         if (roi.contains(trajectory.currentPoint) || (inFlight && roi.contains(startScaled))) &&
             distanceWithCurrentTrajectory < GameConstants.maxDistanceWithCurrentTrajectory {
             if !inFlight {
@@ -136,10 +150,7 @@ class TrajectoryView: UIView, AnimatedTransitioning {
             shadowLayer.path = fullTrajectory.cgPath
             blurLayer.path = fullTrajectory.cgPath
             pathLayer.path = fullTrajectory.cgPath
-            outOfROIPoints = 0
             inFlight = true
-        } else {
-            outOfROIPoints += 1
         }
     }
 }
