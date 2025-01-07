@@ -12,6 +12,7 @@ import Vision
 
 struct ContentAnalysisView: UIViewControllerRepresentable {
     let recordedVideoSource: AVAsset?
+    @Binding var didScore: Bool
     
     func makeUIViewController(context: Context) -> ContentAnalysisViewController {
         let vc = ContentAnalysisViewController()
@@ -44,7 +45,7 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
         }
         
         func cameraViewController(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) {
-            vc?.cameraVCDelegateAction(controller, didReceiveBuffer: buffer, orientation: orientation)
+            parent.didScore = vc?.cameraVCDelegateAction(controller, didReceiveBuffer: buffer, orientation: orientation) ?? false
         }
     }
 }
@@ -89,6 +90,8 @@ class ContentAnalysisViewController: UIViewController {
     var hoopDetected = false
     var playerDetected = false
     
+    var didScore = false
+    
     private var setupComplete = false
     private let detectPlayerRequest = VNDetectHumanBodyPoseRequest()
     private lazy var detectTrajectoryRequest: VNDetectTrajectoriesRequest! =
@@ -100,6 +103,10 @@ class ContentAnalysisViewController: UIViewController {
     
     // A dictionary that stores all trajectories.
     private var trajectoryDictionary: [String: [VNPoint]] = [:]
+    private var poseObservations: [VNHumanBodyPoseObservation] = []
+    
+    private var playerStats = PlayerStats()
+    private var lastShotMetrics = ShotMetrics()
     
     // MARK: - Life Cycle
     
@@ -172,12 +179,12 @@ class ContentAnalysisViewController: UIViewController {
         }
         // Store the body pose observation in playerStats when the game is in TrackThrowsState.
         // We will use these observations for action classification once the throw is complete.
-//        if gameManager.stateMachine.currentState is GameManager.TrackThrowsState {
-//            playerStats.storeObservation(observation)
-//            if trajectoryView.inFlight {
-//                trajectoryInFlightPoseObservations += 1
-//            }
-//        }
+        if gameManager.stateMachine.currentState is GameManager.TrackThrowsState {
+            storeBodyPoseObserarvations(observation)
+            if trajectoryView.inFlight {
+                trajectoryInFlightPoseObservations += 1
+            }
+        }
         return box
     }
     
@@ -261,11 +268,15 @@ class ContentAnalysisViewController: UIViewController {
 // MARK: - CameraViewController delegate action
 
 extension ContentAnalysisViewController {
-    func cameraVCDelegateAction(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) {
+    func cameraVCDelegateAction(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) -> Bool {
         // video camera actions
-        if hoopRegion.isEmpty {
-            try? detectBoard(controller, buffer, orientation)
+//        if hoopRegion.isEmpty {
+        do {
+            try detectBoard(controller, buffer, orientation)
+        } catch {
+            print("detect board error", error.localizedDescription)
         }
+//        }
         
         let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
         if gameManager.stateMachine.currentState is GameManager.TrackThrowsState {
@@ -281,8 +292,8 @@ extension ContentAnalysisViewController {
                     try visionHandler.perform([self.detectTrajectoryRequest])
                     if let results = self.detectTrajectoryRequest.results {
 //                        print("*trajectoryresults.count", results.count)
-                        DispatchQueue.main.async   {
-                            self.processTrajectoryObservations(controller, results)
+                        DispatchQueue.main.async {
+                            self.didScore = self.processTrajectoryObservations(controller, results)
                         }
                     }
                 } catch {
@@ -320,6 +331,8 @@ extension ContentAnalysisViewController {
                 }
             }
         }
+        
+        return didScore
     }
 }
 
@@ -334,8 +347,9 @@ extension ContentAnalysisViewController {
         var visionRect = CGRect.null
         if let results = hoopDetectionRequest.results as? [VNDetectedObjectObservation] {
             // Filter out classification results with low confidence
-            let filteredResults = results.filter { $0.confidence > 0.90 }
-             
+            let filteredResults = results
+                .filter { $0.confidence > 0.70 }
+            
             // Since the model is trained to detect only one object class (game board)
             // there is no need to look at labels. If there is at least one result - we got the board.
             if !filteredResults.isEmpty {
@@ -400,12 +414,30 @@ extension ContentAnalysisViewController {
     private func setupDetectHoopRequest() {
         do {
             // Create Vision request based on CoreML model
-            let model = try VNCoreMLModel(for: HoopDetectorLight(configuration: MLModelConfiguration()).model)
+            let model = try VNCoreMLModel(for: HoopDetectorBeta13x13(configuration: MLModelConfiguration()).model)
             hoopDetectionRequest = VNCoreMLRequest(model: model)
+            
             // Since board is close to the side of a landscape image,
             // we need to set crop and scale option to scaleFit.
             // By default vision request will run on centerCrop.
-            hoopDetectionRequest.imageCropAndScaleOption = .scaleFit
+//            hoopDetectionRequest.imageCropAndScaleOption = .scaleFit
+            
+//            guard let results = hoopDetectionRequest.results as? [VNRecognizedObjectObservation] else {
+//                print("No results found.")
+//                return
+//            }
+//
+//            // Iterate through results
+//            for observation in results {
+//                // Access labels and confidence
+//                let topLabel = observation.labels.first
+//                if let label = topLabel {
+//                    print("Detected: \(label.identifier), Confidence: \(label.confidence)")
+//                }
+//
+//                // Access bounding box
+//                print("Bounding Box: \(observation.boundingBox)")
+//            }
         } catch {
             print("*****boundingbox/", error.localizedDescription)
         }
@@ -415,79 +447,12 @@ extension ContentAnalysisViewController {
 // MARK: - Trajectory stuff
 
 extension ContentAnalysisViewController {
-    func processTrajectoryObservations(_ controller: CameraViewController, _ results: [VNTrajectoryObservation]) {
+    func processTrajectoryObservations(_ controller: CameraViewController, _ results: [VNTrajectoryObservation]) -> Bool {
         if self.trajectoryView.inFlight && results.count < 1 {
             // The trajectory is already in flight but VNDetectTrajectoriesRequest doesn't return any trajectory observations.
             self.noObservationFrameCount += 1
             if self.noObservationFrameCount > GameConstants.noObservationFrameLimit {
-                let pointSize: CGFloat = 10
-                
-                let finalBagLocation = viewPointForVisionPoint(trajectoryView.finalBagLocation)
-                print("throwCompleted")
-                print("score", hoopRegion.contains(finalBagLocation) ? "var✅" : "yox❌", hoopRegion, ".contains(", finalBagLocation, ")")
-                
-//                let hoopRegView = UIView(frame: .init(
-//                    x: hoopRegion.midX - pointSize/2,
-//                    y: hoopRegion.minY - pointSize/2,
-//                    width: pointSize,
-//                    height: pointSize
-//                ))
-//                hoopRegView.backgroundColor = UIColor.red.withAlphaComponent(0.8)
-//                hoopRegView.layer.cornerRadius = pointSize/2  // Makes it circular
-//                self.view.addSubview(hoopRegView)
-//                                
-                trajectoryView.resetPath()
-                
-                let trajectoryPoints = trajectoryView.points
-                    .map { viewPointForVisionPoint($0.location) }
-                
-                
-                for (index, point) in trajectoryPoints.enumerated() {
-                    print("*", point.y, "should be smaller than", hoopRegion.minY)
-                            let point = UIView(frame: CGRect(
-                                x: point.x - pointSize/2,
-                                y: point.y - pointSize/2,
-                                width: pointSize,
-                                height: pointSize
-                            ))
-                    point.backgroundColor = UIColor.red.withAlphaComponent(0.8)
-                            point.layer.cornerRadius = pointSize/2  // Makes it circular
-//                            self.view.addSubview(point)
-                            
-                }
-                
-                guard let aboveRimBallLocation = trajectoryPoints.last(where: { $0.y < hoopRegion.minY })
-                else {
-                    print("no above rim location")
-                    return
-                }
-                
-//                let aboveRimBallLocation = viewPointForVisionPoint(rawAboveRimBallLocation)
-                
-                let finalBallLocationView = UIView(frame: CGRect(
-                    x: finalBagLocation.x - pointSize/2,
-                    y: finalBagLocation.y - pointSize/2,
-                    width: pointSize,
-                    height: pointSize
-                ))
-                finalBallLocationView.backgroundColor = UIColor.blue.withAlphaComponent(0.8)
-                finalBallLocationView.layer.cornerRadius = pointSize/2  // Makes it circular
-                self.view.addSubview(finalBallLocationView)
-                
-                let aboveRimBallLocationView = UIView(frame: CGRect(
-                    x: aboveRimBallLocation.x - pointSize/2,
-                    y: aboveRimBallLocation.y - pointSize/2,
-                    width: pointSize,
-                    height: pointSize
-                ))
-                aboveRimBallLocationView.backgroundColor = UIColor.red.withAlphaComponent(0.8)
-                aboveRimBallLocationView.layer.cornerRadius = pointSize/2  // Makes it circular
-                self.view.addSubview(aboveRimBallLocationView)
-                
-                print("trajectoryView.duration", trajectoryView.duration)
-                
-                // Ending the throw as we don't see any observations in consecutive GameConstants.noObservationFrameLimit frames.
-//                self.updatePlayerStats(controller)
+                return throwCompletedAction(controller)
             }
         } else {
             for path in results where path.confidence > trajectoryDetectionMinConfidence {
@@ -507,13 +472,13 @@ extension ContentAnalysisViewController {
 //                    if self.trajectoryView.isThrowComplete {
 //                        print("*THROW COMPLETED")
 //                        // Update the player statistics once the throw is complete.
-//                        self.updatePlayerStats(controller)
-//                        trajectoryView.resetPath()
+//                        return throwCompletedAction(controller)
 //                    }
                 }
                 self.noObservationFrameCount = 0
             }
         }
+        return false
     }
 }
 
@@ -539,13 +504,18 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
 //            statusLabel.perform(transitions: [.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1.5) {
                 self.gameManager.stateMachine.enter(GameManager.DetectingPlayerState.self)
 //            }
-        case is GameManager.ThrowCompletedState: break
+        case is GameManager.ThrowCompletedState:
 //            dashboardView.speed = lastThrowMetrics.releaseSpeed
 //            dashboardView.animateSpeedChart()
 //            playerStats.adjustMetrics(score: lastThrowMetrics.score, speed: lastThrowMetrics.releaseSpeed,
 //                                      releaseAngle: lastThrowMetrics.releaseAngle, throwType: lastThrowMetrics.throwType)
-//            playerStats.resetObservations()
-//            trajectoryInFlightPoseObservations = 0
+//            playerStats.resetObservations() bunun yerine |
+            poseObservations = []
+            trajectoryInFlightPoseObservations = 0
+            
+            print("after shot completed, here is lastShotMetrics:", lastShotMetrics)
+            print("and player stats", playerStats)
+            print("_-_-_-_")
 //            self.updateKPILabels()
 //
 //            gameStatusLabel.text = lastThrowMetrics.score.rawValue > 0 ? "+\(lastThrowMetrics.score.rawValue)" : ""
@@ -553,11 +523,174 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
 //                if self.playerStats.throwCount == GameConstants.maxThrows {
 //                    self.gameManager.stateMachine.enter(GameManager.ShowSummaryState.self)
 //                } else {
-//                    self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
+                    self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
 //                }
 //            }
         default:
             break
         }
     }
+}
+
+// MARK: -
+
+extension ContentAnalysisViewController {
+    func updatePlayerStats(_ controller: CameraViewController, isShotWentIn isScore: Bool) {
+        
+        // Compute the speed in mph
+        // trajectoryView.speed is in points/second, convert that to meters/second by multiplying the pointToMeterMultiplier.
+        // 1 meters/second = 2.24 miles/hour
+        let speed = round(trajectoryView.speed * gameManager.pointToMeterMultiplier * 2.24 * 100) / 100
+        // getReleaseAngle ve getLastJumpshotTypein playerStatda olmagi da menasizdi onsuz, baxariq.
+        print(poseObservations.isEmpty ? "poseobs emptydi" : nil)
+        let releaseAngle = playerStats.getReleaseAngle(poseObservations: poseObservations)
+        let jumpshotType = playerStats.getLastJumpshotType(poseObservations: poseObservations)
+        
+        lastShotMetrics = .init(
+            isScore: isScore,
+            speed: speed,
+            releaseAngle: releaseAngle,
+            jumpshotType: jumpshotType
+        )
+        
+        playerStats.storeShotPath(.init(rect: .zero, transform: .none)/*trajectoryView.fullTrajectory.cgPath*/)
+        playerStats.storeShotSpeed(speed)
+        playerStats.storeReleaseAngle(releaseAngle)
+        playerStats.adjustMetrics(isShotWentIn: isScore)
+        
+        self.gameManager.stateMachine.enter(GameManager.ThrowCompletedState.self)
+    }
+    
+    private func throwCompletedAction(_ controller: CameraViewController) -> Bool {
+        let trajectoryPoints = trajectoryView.points
+            .map { viewPointForVisionPoint($0.location) }
+        let insideHoopBallLocation = trajectoryPoints.first(where: { hoopRegion.contains($0) })
+        
+        updatePlayerStats(controller, isShotWentIn: insideHoopBallLocation != nil)
+        trajectoryView.resetPath()
+        
+        return insideHoopBallLocation != nil
+    }
+    
+    func storeBodyPoseObserarvations(_ observation: VNHumanBodyPoseObservation) {
+        if poseObservations.count >= GameConstants.maxPoseObservations {
+            poseObservations.removeFirst()
+        }
+        poseObservations.append(observation)
+    }
+}
+
+enum JumpshotType: String, CaseIterable {
+    case underhand = "Underhand"
+    case normal = "Normal"
+    case none = "None"
+}
+
+struct ShotMetrics {
+    let isScore: Bool
+    var speed: Double
+    let releaseAngle: Double
+    let jumpshotType: JumpshotType
+    
+    init(
+        isScore: Bool = false,
+        speed: Double = 0.0,
+        releaseAngle: Double = 0.0,
+        jumpshotType: JumpshotType = .none
+    ) {
+        self.isScore = isScore
+        self.speed = speed
+        self.releaseAngle = releaseAngle
+        self.jumpshotType = jumpshotType
+    }
+}
+
+
+struct PlayerStats {
+    var totalScore = 0
+    var throwCount = 0
+    var topSpeed: Double {
+        allSpeeds.max() ?? 0
+    }
+    var avgReleaseAngle: Double {
+        let sum = Int(allReleaseAngles.reduce(0, +))
+        return Double(sum / allReleaseAngles.count)
+    }
+    var avgSpeed: Double {
+        let sum = Int(allSpeeds.reduce(0, +))
+        return Double(sum / allSpeeds.count)
+    }
+    
+//    var poseObservations = [VNHumanBodyPoseObservation]()
+    var shotPaths: [CGPath] = []
+    var allSpeeds: [Double] = []
+    var allReleaseAngles: [Double] = []
+    
+//    var allReleaseSpeeds: [Double] = [] // or durations
+//    var topReleaseSpeed = 0.0 // or duration
+//    var avgReleaseSpeed = 0.0 // or duration
+    
+    mutating func adjustMetrics(isShotWentIn: Bool) {
+        throwCount += 1
+        if isShotWentIn {
+            totalScore += 1
+        }
+    }
+    
+    mutating func storeShotPath(_ path: CGPath) {
+        shotPaths.append(path)
+    }
+    
+    mutating func storeShotSpeed(_ speed: Double) {
+        allSpeeds.append(speed)
+    }
+    
+    mutating func storeReleaseAngle(_ angle: Double) {
+        allReleaseAngles.append(angle)
+    }
+    
+    func getReleaseAngle(poseObservations: [VNHumanBodyPoseObservation]) -> Double {
+        var releaseAngle: Double = 0.0
+        if !poseObservations.isEmpty {
+            let observationCount = poseObservations.count
+            let postReleaseObservationCount = GameConstants.trajectoryLength + GameConstants.maxTrajectoryInFlightPoseObservations
+            let keyFrameForReleaseAngle = observationCount > postReleaseObservationCount ? observationCount - postReleaseObservationCount : 0
+            let observation = poseObservations[keyFrameForReleaseAngle]
+            let (rightElbow, rightWrist) = armJoints(for: observation)
+            // Release angle is computed by measuring the angle forearm (elbow to wrist) makes with the horizontal
+            releaseAngle = rightElbow.angleFromHorizontal(to: rightWrist)
+        }
+        return releaseAngle
+    }
+
+    mutating func getLastJumpshotType(poseObservations: [VNHumanBodyPoseObservation]) -> JumpshotType {
+//        guard let actionClassifier = try? PlayerActionClassifier(configuration: MLModelConfiguration()),
+//              let poseMultiArray = prepareInputWithObservations(poseObservations),
+//              let predictions = try? actionClassifier.prediction(poses: poseMultiArray),
+//              let throwType = ThrowType(rawValue: predictions.label.capitalized) else {
+//            return .none
+//        }
+//        return throwType
+        return .underhand
+    }
+}
+
+func armJoints(for observation: VNHumanBodyPoseObservation) -> (CGPoint, CGPoint) {
+    var rightElbow = CGPoint(x: 0, y: 0)
+    var rightWrist = CGPoint(x: 0, y: 0)
+
+    guard let identifiedPoints = try? observation.recognizedPoints(.all) else {
+        return (rightElbow, rightWrist)
+    }
+    for (key, point) in identifiedPoints where point.confidence > 0.1 {
+        switch key {
+        case .rightElbow:
+            rightElbow = point.location
+        case .rightWrist:
+            rightWrist = point.location
+        default:
+            break
+        }
+    }
+    return (rightElbow, rightWrist)
 }

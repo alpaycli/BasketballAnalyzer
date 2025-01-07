@@ -33,6 +33,9 @@ struct MainView: View {
     
     @State private var isLiveCameraSelected = false
     
+    @State private var didScore = false
+    @State private var showScoredText = false
+    
     var body: some View {
         ZStack {
             if let recordedVideoSource {
@@ -46,15 +49,33 @@ struct MainView: View {
 ////                    Path(roundedRect: boardRect, cornerRadius: 5)
 //                }
                 
-                ContentAnalysisView(recordedVideoSource: recordedVideoSource)
+                ContentAnalysisView(recordedVideoSource: recordedVideoSource, didScore: $didScore)
                     .zIndex(99)
+                    .overlay {
+                        if showScoredText {
+                            Text("Score!")
+                                .font(.largeTitle)
+                                .zIndex(999)
+                                .animation(.easeInOut, value: showScoredText)
+                        }
+                    }
+                    .onChange(of: didScore) { oldValue, newValue in
+                        
+                        print("here", didScore)
+                        if newValue == true {
+                            showScoredText = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                showScoredText = false
+                            }
+                        }
+                    }
                 
 //                CameraView(recordedVideoAsset: recordedVideoSource)
 //                    .onTapGesture {
 //                        showFileImporter = true
 //                    }
             } else if isLiveCameraSelected {
-                ContentAnalysisView(recordedVideoSource: nil)
+                ContentAnalysisView(recordedVideoSource: nil, didScore: $didScore)
             } else {
                 VStack {
                     Button("Import video") { showFileImporter = true }
@@ -128,9 +149,10 @@ struct MainView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
         .overlay(alignment: .topLeading) {
-            if recordedVideoSource != nil {
+            if recordedVideoSource != nil || isLiveCameraSelected {
                 Button("Close", systemImage: "xmark") {
                     recordedVideoSource = nil
+                    isLiveCameraSelected = false
                 }
                 .padding()
                 .labelStyle(.iconOnly)
