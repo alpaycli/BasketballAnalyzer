@@ -270,13 +270,13 @@ class ContentAnalysisViewController: UIViewController {
 extension ContentAnalysisViewController {
     func cameraVCDelegateAction(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) -> Bool {
         // video camera actions
-//        if hoopRegion.isEmpty {
+        if hoopRegion.isEmpty {
         do {
             try detectBoard(controller, buffer, orientation)
         } catch {
             print("detect board error", error.localizedDescription)
         }
-//        }
+        }
         
         let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
         if gameManager.stateMachine.currentState is GameManager.TrackThrowsState {
@@ -514,7 +514,10 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             trajectoryInFlightPoseObservations = 0
             
             print("after shot completed, here is lastShotMetrics:", lastShotMetrics)
-            print("and player stats", playerStats)
+            print(playerStats.allReleaseAngles.count)
+//            print("and player stats", playerStats)
+//            print("poseobservations.count", poseObservations.count)
+//            print("trajectoryview length", trajectoryView.points.count)
             print("_-_-_-_")
 //            self.updateKPILabels()
 //
@@ -542,7 +545,6 @@ extension ContentAnalysisViewController {
         // 1 meters/second = 2.24 miles/hour
         let speed = round(trajectoryView.speed * gameManager.pointToMeterMultiplier * 2.24 * 100) / 100
         // getReleaseAngle ve getLastJumpshotTypein playerStatda olmagi da menasizdi onsuz, baxariq.
-        print(poseObservations.isEmpty ? "poseobs emptydi" : nil)
         let releaseAngle = playerStats.getReleaseAngle(poseObservations: poseObservations)
         let jumpshotType = playerStats.getLastJumpshotType(poseObservations: poseObservations)
         
