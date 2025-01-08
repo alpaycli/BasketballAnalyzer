@@ -33,8 +33,23 @@ struct MainView: View {
     
     @State private var isLiveCameraSelected = false
     
-    @State private var didScore = false
-    @State private var showScoredText = false
+    @State private var lastShotMetrics: ShotMetrics? = nil
+    
+    @State private var showShotResultLabel = false
+    
+    var lastShotMetricsBinding: Binding<ShotMetrics?> {
+        .init {
+            lastShotMetrics
+        } set: { newValue in
+            print("bura lastshotmetrics", "salam")
+            lastShotMetrics = newValue
+            showShotResultLabel = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                showShotResultLabel = false
+            }
+        }
+    }
+
     
     var body: some View {
         ZStack {
@@ -49,24 +64,24 @@ struct MainView: View {
 ////                    Path(roundedRect: boardRect, cornerRadius: 5)
 //                }
                 
-                ContentAnalysisView(recordedVideoSource: recordedVideoSource, didScore: $didScore)
+                ContentAnalysisView(recordedVideoSource: recordedVideoSource, lastShotMetrics: lastShotMetricsBinding)
                     .zIndex(99)
-                    .overlay {
-                        if showScoredText {
-                            Text("Score!")
+                    .overlay(alignment: .bottomTrailing) {
+                        if let lastShotMetrics {
+                            Text(lastShotMetrics.releaseAngle.formatted())
                                 .font(.largeTitle)
                                 .zIndex(999)
-                                .animation(.easeInOut, value: showScoredText)
+                                .padding()
+                                .foregroundStyle(.white)
                         }
                     }
-                    .onChange(of: didScore) { oldValue, newValue in
-                        
-                        print("here", didScore)
-                        if newValue == true {
-                            showScoredText = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                showScoredText = false
-                            }
+                    .overlay {
+                        if let lastShotMetrics, showShotResultLabel {
+                            Text(lastShotMetrics.isScore ? "✅Score" : "❌Miss")
+                                .font(.largeTitle)
+                                .zIndex(999)
+//                                .animation(.easeInOut, value: showShotResultLabel)
+                                .transition(.scale)
                         }
                     }
                 
@@ -75,7 +90,7 @@ struct MainView: View {
 //                        showFileImporter = true
 //                    }
             } else if isLiveCameraSelected {
-                ContentAnalysisView(recordedVideoSource: nil, didScore: $didScore)
+                ContentAnalysisView(recordedVideoSource: nil, lastShotMetrics: lastShotMetricsBinding)
             } else {
                 VStack {
                     Button("Import video") { showFileImporter = true }
