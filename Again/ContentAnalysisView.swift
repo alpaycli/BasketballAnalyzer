@@ -513,7 +513,7 @@ extension ContentAnalysisViewController {
 // MARK: -
 
 extension ContentAnalysisViewController {
-    func updatePlayerStats(_ controller: CameraViewController, isShotWentIn isScore: Bool) {
+    func updatePlayerStats(_ controller: CameraViewController, shotResult: ShotResult) {
         
         // Compute the speed in mph
         // trajectoryView.speed is in points/second, convert that to meters/second by multiplying the pointToMeterMultiplier.
@@ -524,7 +524,7 @@ extension ContentAnalysisViewController {
         let jumpshotType = playerStats.getLastJumpshotType(poseObservations: poseObservations)
         
         lastShotMetrics = .init(
-            isScore: isScore,
+            shotResult: shotResult,
             speed: speed,
             releaseAngle: releaseAngle,
             jumpshotType: jumpshotType
@@ -533,7 +533,7 @@ extension ContentAnalysisViewController {
         playerStats.storeShotPath(.init(rect: .zero, transform: .none)/*trajectoryView.fullTrajectory.cgPath*/)
         playerStats.storeShotSpeed(speed)
         playerStats.storeReleaseAngle(releaseAngle)
-        playerStats.adjustMetrics(isShotWentIn: isScore)
+        playerStats.adjustMetrics(isShotWentIn: shotResult == .score)
         
         self.gameManager.stateMachine.enter(GameManager.ThrowCompletedState.self)
     }
@@ -541,9 +541,25 @@ extension ContentAnalysisViewController {
     private func throwCompletedAction(_ controller: CameraViewController) {
         let trajectoryPoints = trajectoryView.points
             .map { viewPointForVisionPoint($0.location) }
-        let insideHoopBallLocation = trajectoryPoints.first(where: { hoopRegion.contains($0) })
+        guard !trajectoryPoints.isEmpty else { return }
         
-        updatePlayerStats(controller, isShotWentIn: insideHoopBallLocation != nil)
+        var shotResult: ShotResult = .miss(.none)
+        
+        let startPointX = trajectoryPoints.first!.x
+        let endPointX = trajectoryPoints.last!.x
+        let isStartPointOnLeftSideOfHoop = startPointX < hoopRegion.minX
+        let isEndPointOnLeftSideOfHoop = endPointX < hoopRegion.minX
+        
+        if let _ = trajectoryPoints.first(where: { hoopRegion.contains($0) }) {
+            shotResult = .score
+        } else if (startPointX < hoopRegion.minX && endPointX > hoopRegion.maxX) || (startPointX > hoopRegion.maxX && endPointX < hoopRegion.minX) {
+            shotResult = .miss(.long)
+        } else if isStartPointOnLeftSideOfHoop == isEndPointOnLeftSideOfHoop {
+            shotResult = .miss(.short)
+        }
+        
+        
+        updatePlayerStats(controller, shotResult: shotResult)
         trajectoryView.resetPath()
     }
     

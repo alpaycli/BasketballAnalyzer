@@ -14,19 +14,40 @@ enum JumpshotType: String, CaseIterable {
     case none = "None"
 }
 
+enum ShotResult: Equatable {
+    case score
+    case miss(ShotMissReason)
+    
+    enum ShotMissReason: String {
+        case short = "Short"
+        case long = "None"
+        // means hit the rim
+        case none = "Miss" // or nice try
+    }
+    
+    var description: String {
+        switch self {
+        case .score:
+            "✅Score"
+        case .miss(let shotMissReason):
+            "❌" + shotMissReason.rawValue
+        }
+    }
+}
+
 struct ShotMetrics: Equatable {
-    let isScore: Bool
+    let shotResult: ShotResult
     var speed: Double
     let releaseAngle: Double
     let jumpshotType: JumpshotType
     
     init(
-        isScore: Bool = false,
+        shotResult: ShotResult = .miss(.none),
         speed: Double = 0.0,
         releaseAngle: Double = 0.0,
         jumpshotType: JumpshotType = .none
     ) {
-        self.isScore = isScore
+        self.shotResult = shotResult
         self.speed = speed
         self.releaseAngle = releaseAngle
         self.jumpshotType = jumpshotType

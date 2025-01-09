@@ -84,7 +84,7 @@ struct MainView: View {
                     }
                     .overlay {
                         if let lastShotMetrics, showShotResultLabel {
-                            Text(lastShotMetrics.isScore ? "✅Score" : "❌Miss")
+                            Text(lastShotMetrics.shotResult.description)
                                 .font(.largeTitle)
                                 .zIndex(999)
 //                                .animation(.easeInOut, value: showShotResultLabel)
