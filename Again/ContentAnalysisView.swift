@@ -210,7 +210,6 @@ class ContentAnalysisViewController: UIViewController {
     }
     
     private func setUIElements() {
-//        resetKPILabels()
         playerBoundingBox.borderColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 1)
         playerBoundingBox.backgroundOpacity = 0
         playerBoundingBox.isHidden = true
@@ -530,6 +529,7 @@ extension ContentAnalysisViewController {
             jumpshotType: jumpshotType
         )
         
+        #warning("fix")
         playerStats.storeShotPath(.init(rect: .zero, transform: .none)/*trajectoryView.fullTrajectory.cgPath*/)
         playerStats.storeShotSpeed(speed)
         playerStats.storeReleaseAngle(releaseAngle)
@@ -563,7 +563,7 @@ extension ContentAnalysisViewController {
         trajectoryView.resetPath()
     }
     
-    func storeBodyPoseObserarvations(_ observation: VNHumanBodyPoseObservation) {
+    private func storeBodyPoseObserarvations(_ observation: VNHumanBodyPoseObservation) {
         if poseObservations.count >= GameConstants.maxPoseObservations {
             poseObservations.removeFirst()
         }

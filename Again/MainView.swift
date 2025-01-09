@@ -44,7 +44,7 @@ struct MainView: View {
             print("bura lastshotmetrics", "salam")
             lastShotMetrics = newValue
             showShotResultLabel = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 showShotResultLabel = false
             }
         }
@@ -136,6 +136,7 @@ struct MainView: View {
                                 Task {
                                     await MainActor.run {
                                         recordedVideoSource = AVURLAsset(url: success.absoluteURL)
+                                        lastShotMetrics = nil
                                     }
                                 }
                             case .failure(let failure):
