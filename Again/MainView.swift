@@ -68,11 +68,18 @@ struct MainView: View {
                     .zIndex(99)
                     .overlay(alignment: .bottomTrailing) {
                         if let lastShotMetrics {
-                            Text(lastShotMetrics.releaseAngle.formatted())
-                                .font(.largeTitle)
-                                .zIndex(999)
-                                .padding()
-                                .foregroundStyle(.white)
+                            VStack {
+                                Text(lastShotMetrics.releaseAngle.formatted())
+                                    .font(.largeTitle)
+                                    .zIndex(999)
+                                    .foregroundStyle(.white)
+                                
+                                Text("Ball Speed: " + lastShotMetrics.speed.formatted() + " MPH")
+                                    .font(.largeTitle)
+                                    .zIndex(999)
+                                    .foregroundStyle(.white)
+                            }
+                            .padding()
                         }
                     }
                     .overlay {

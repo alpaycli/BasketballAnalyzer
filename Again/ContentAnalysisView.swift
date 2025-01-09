@@ -409,6 +409,9 @@ extension ContentAnalysisViewController {
                 // Convert normalized bounding box size to points.
                 let edgeSize = CGSize(width: edgeNormalizedBB.width * boardBoundingBox.frame.width,
                                       height: edgeNormalizedBB.height * boardBoundingBox.frame.height)
+                
+                let hoopLength = hypot(edgeSize.width, edgeSize.height)
+                self.gameManager.pointToMeterMultiplier = GameConstants.hoopLength / Double(hoopLength)
 
                 
                 let highlightPath = UIBezierPath(cgPath: boardPath)

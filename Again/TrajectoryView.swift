@@ -20,7 +20,6 @@ extension Collection {
 class TrajectoryView: UIView, AnimatedTransitioning {
     var roi = CGRect.null
     var inFlight = false
-    var outOfROIPoints = 0
     var fullTrajectory = UIBezierPath()
     var duration = 0.0
     var speed = 0.0
@@ -41,7 +40,7 @@ class TrajectoryView: UIView, AnimatedTransitioning {
     var isThrowComplete: Bool {
         // Mark throw as complete if we don't get any trajectory observations in our roi
         // for consecutive GameConstants.noObservationFrameLimit frames
-        if inFlight && outOfROIPoints > GameConstants.noObservationFrameLimit {
+        if inFlight /*&& outOfROIPoints > GameConstants.noObservationFrameLimit*/ {
             return true
         }
         return false
@@ -76,7 +75,6 @@ class TrajectoryView: UIView, AnimatedTransitioning {
 
     func resetPath() {
         inFlight = false
-        outOfROIPoints = 0
         distanceWithCurrentTrajectory = 0
         fullTrajectory.removeAllPoints()
         pathLayer.path = fullTrajectory.cgPath
@@ -135,9 +133,9 @@ class TrajectoryView: UIView, AnimatedTransitioning {
 //
         
 //        print("distanceWithCurrentTrajectory", distanceWithCurrentTrajectory)
-        if (roi.contains(trajectory.currentPoint) || (inFlight && roi.contains(startScaled))) &&
-            distanceWithCurrentTrajectory < GameConstants.maxDistanceWithCurrentTrajectory {
+        if (roi.contains(trajectory.currentPoint) || (inFlight && roi.contains(startScaled))) {
             if !inFlight {
+                print("nonono")
                 // This is the first trajectory detected for the throw. Compute the speed in pts/sec
                 // Length of the trajectory is calculated by measuring the distance between the first and last point on the trajectory
                 // length = sqrt((final.x - start.x)^2 + (final.y - start.y)^2)
@@ -151,11 +149,7 @@ class TrajectoryView: UIView, AnimatedTransitioning {
             shadowLayer.path = fullTrajectory.cgPath
             blurLayer.path = fullTrajectory.cgPath
             pathLayer.path = fullTrajectory.cgPath
-            outOfROIPoints = 0
             inFlight = true
-        } else {
-            print("outofroi artir")
-            outOfROIPoints += 1
         }
     }
 }
