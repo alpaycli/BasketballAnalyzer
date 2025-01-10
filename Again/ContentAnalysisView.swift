@@ -146,6 +146,7 @@ class ContentAnalysisViewController: UIViewController {
     
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        stopObservingStateChanges()
 //        cameraViewController.stopCameraSession()
 //        recordedVideoSource = nil
 //        detectTrajectoryRequest = nil
