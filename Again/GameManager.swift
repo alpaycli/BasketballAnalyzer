@@ -64,8 +64,8 @@ class GameManager {
     var boardRegion = CGRect.null
     var holeRegion = CGRect.null
     var recordedVideoSource: AVAsset?
-//    var playerStats = PlayerStats()
-//    var lastThrowMetrics = ThrowMetrics()
+    var playerStats = PlayerStats()
+//    var lastShotMetrics = ShotMetrics()
     var pointToMeterMultiplier = Double.nan
     var previewImage = UIImage()
     
@@ -96,7 +96,7 @@ class GameManager {
         // Reset all stored values
         boardRegion = .null
         recordedVideoSource = nil
-//        playerStats = PlayerStats()
+        playerStats = PlayerStats()
         pointToMeterMultiplier = .nan
         // Remove all observers and enter inactive state.
         let notificationCenter = NotificationCenter.default

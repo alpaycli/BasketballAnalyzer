@@ -34,6 +34,7 @@ struct MainView: View {
     @State private var isLiveCameraSelected = false
     
     @State private var lastShotMetrics: ShotMetrics? = nil
+    @State private var playerStats: PlayerStats? = nil
     
     @State private var showShotResultLabel = false
     
@@ -64,7 +65,7 @@ struct MainView: View {
 ////                    Path(roundedRect: boardRect, cornerRadius: 5)
 //                }
                 
-                ContentAnalysisView(recordedVideoSource: recordedVideoSource, lastShotMetrics: lastShotMetricsBinding)
+                ContentAnalysisView(recordedVideoSource: recordedVideoSource, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats)
                     .zIndex(99)
                     .overlay(alignment: .bottomTrailing) {
                         if let lastShotMetrics {
@@ -87,7 +88,16 @@ struct MainView: View {
                             Text(lastShotMetrics.shotResult.description)
                                 .font(.largeTitle)
                                 .zIndex(999)
-//                                .animation(.easeInOut, value: showShotResultLabel)
+                                .animation(.easeInOut, value: showShotResultLabel)
+                                .transition(.scale)
+                        }
+                    }
+                    .overlay {
+                        if let playerStats {
+                            Text("Game is Over, Here is your Summary.")
+                                .font(.largeTitle)
+                                .zIndex(999)
+                                .animation(.easeInOut, value: playerStats != nil)
                                 .transition(.scale)
                         }
                     }
@@ -97,7 +107,7 @@ struct MainView: View {
 //                        showFileImporter = true
 //                    }
             } else if isLiveCameraSelected {
-                ContentAnalysisView(recordedVideoSource: nil, lastShotMetrics: lastShotMetricsBinding)
+                ContentAnalysisView(recordedVideoSource: nil, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats)
             } else {
                 VStack {
                     Button("Import video") { showFileImporter = true }
@@ -135,8 +145,14 @@ struct MainView: View {
                                 }
                                 Task {
                                     await MainActor.run {
-                                        recordedVideoSource = AVURLAsset(url: success.absoluteURL)
+                                        GameManager.shared.reset()
+                                        GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
+                                        
+                                        // to not see previous videos last shot metrics on the initial
                                         lastShotMetrics = nil
+                                        playerStats = nil
+                                        
+                                        recordedVideoSource = AVURLAsset(url: success.absoluteURL)
                                     }
                                 }
                             case .failure(let failure):

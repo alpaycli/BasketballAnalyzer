@@ -13,6 +13,7 @@ import Vision
 struct ContentAnalysisView: UIViewControllerRepresentable {
     let recordedVideoSource: AVAsset?
     @Binding var lastShotMetrics: ShotMetrics?
+    @Binding var playerStats: PlayerStats?
     
     func makeUIViewController(context: Context) -> ContentAnalysisViewController {
         let vc = ContentAnalysisViewController()
@@ -50,23 +51,19 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
             vc?.cameraVCDelegateAction(controller, didReceiveBuffer: buffer, orientation: orientation)
         }
         
-        func showLastShowMetrics(metrics: ShotMetrics?) {
-//            guard let metrics else {
-//                parent.showShotMetrics = false
-//                parent.lastShotMetrics = nil
-//                return
-//            }
-            
-//            parent.showShotMetrics = metrics != nil ? true : false
+        func showLastShowMetrics(metrics: ShotMetrics) {
             parent.lastShotMetrics = metrics
-            
-            print("after shot completed, here is lastShotMetrics:", metrics)
+        }
+        
+        func showSummary(stats: PlayerStats) {
+            parent.playerStats = stats
         }
     }
 }
 
 protocol ContentAnalysisVCDelegate: AnyObject {
-    func showLastShowMetrics(metrics: ShotMetrics?)
+    func showLastShowMetrics(metrics: ShotMetrics)
+    func showSummary(stats: PlayerStats)
 }
 
 class ContentAnalysisViewController: UIViewController {
@@ -614,12 +611,15 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
 //
 //            gameStatusLabel.text = lastThrowMetrics.score.rawValue > 0 ? "+\(lastThrowMetrics.score.rawValue)" : ""
 //            gameStatusLabel.perform(transitions: [.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1) {
-//                if self.playerStats.throwCount == GameConstants.maxThrows {
-//                    self.gameManager.stateMachine.enter(GameManager.ShowSummaryState.self)
-//                } else {
-                    self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
-//                }
+            #warning("maxShots can be changed to user's choice")
+            if self.playerStats.shotCount == GameConstants.maxShots {
+                self.gameManager.stateMachine.enter(GameManager.ShowSummaryState.self)
+            } else {
+                self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
+            }
 //            }
+        case is GameManager.ShowSummaryState:
+            delegate?.showSummary(stats: playerStats)
         default:
             break
         }

@@ -56,8 +56,8 @@ struct ShotMetrics: Equatable {
 
 
 struct PlayerStats {
-    var totalScore = 0
-    var throwCount = 0
+    private(set) var totalScore = 0
+    private(set) var shotCount = 0
     var topSpeed: Double {
         allSpeeds.max() ?? 0
     }
@@ -71,8 +71,8 @@ struct PlayerStats {
     }
     
 //    var poseObservations = [VNHumanBodyPoseObservation]()
-    var shotPaths: [CGPath] = []
-    var allSpeeds: [Double] = []
+    private(set) var shotPaths: [CGPath] = []
+    private(set) var allSpeeds: [Double] = []
     var allReleaseAngles: [Double] = []
     
 //    var allReleaseSpeeds: [Double] = [] // or durations
@@ -80,7 +80,7 @@ struct PlayerStats {
 //    var avgReleaseSpeed = 0.0 // or duration
     
     mutating func adjustMetrics(isShotWentIn: Bool) {
-        throwCount += 1
+        shotCount += 1
         if isShotWentIn {
             totalScore += 1
         }
