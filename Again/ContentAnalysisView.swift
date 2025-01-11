@@ -17,10 +17,9 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
     
     func makeUIViewController(context: Context) -> ContentAnalysisViewController {
         let vc = ContentAnalysisViewController()
-        vc.recordedVideoSource = recordedVideoSource
-        vc.recordedVideoSource = recordedVideoSource
         vc.setCameraVCDelegate(context.coordinator)
         vc.delegate = context.coordinator
+        vc.recordedVideoSource = recordedVideoSource
 
         
         context.coordinator.vc = vc
@@ -68,22 +67,12 @@ protocol ContentAnalysisVCDelegate: AnyObject {
 
 class ContentAnalysisViewController: UIViewController {
     
-//    // MARK: - Static Properties
-//    static let segueDestinationId = "ShowAnalysisView"
-//    
-//    // MARK: - IBOutlets
-//    @IBOutlet var closeButton: UIButton!
-//
-//    // MARK: - IBActions
-//    @IBAction func closeRootViewTapped(_ sender: Any) {
-//        dismiss(animated: true, completion: nil)
-//    }
+    weak var delegate: ContentAnalysisVCDelegate?
+    private let gameManager = GameManager.shared
     
-    // MARK: - Public Properties
     var recordedVideoSource: AVAsset?
     
-    // MARK: - Private Properties
-    private let gameManager = GameManager.shared
+    // MARK: - Views
     
     private var cameraViewController = CameraViewController()
     private var trajectoryView = TrajectoryView()
@@ -93,48 +82,43 @@ class ContentAnalysisViewController: UIViewController {
     
     private var hoopRegion: CGRect = .zero
     
-//    private var throwRegion = CGRect.null
-//    private var targetRegion = CGRect.null
-    
     private var trajectoryInFlightPoseObservations = 0
     private var noObservationFrameCount = 0
     
-    private let bodyPoseDetectionMinConfidence: VNConfidence = 0.6
-    private let trajectoryDetectionMinConfidence: VNConfidence = 0.9
-    private let bodyPoseRecognizedPointMinConfidence: VNConfidence = 0.1
+    // MARK: - Requests
     
-    var hoopDetected = false
-    var playerDetected = false
-        
-    private var setupComplete = false
     private let detectPlayerRequest = VNDetectHumanBodyPoseRequest()
     private lazy var detectTrajectoryRequest: VNDetectTrajectoriesRequest! =
                         VNDetectTrajectoriesRequest(frameAnalysisSpacing: .zero, trajectoryLength: GameConstants.trajectoryLength)
-    
     private var hoopDetectionRequest: VNCoreMLRequest!
+    
+    // MARK: - States
+    
+    private var hoopDetected = false
+    private var playerDetected = false
+
+    private var setupComplete = false
+    private var showShotMetrics = false
+    
+    // MARK: - Others
     
     private let trajectoryQueue = DispatchQueue(label: "com.ActionAndVision.trajectory", qos: .userInteractive)
     
-    // A dictionary that stores all trajectories.
-    private var trajectoryDictionary: [String: [VNPoint]] = [:]
     private var poseObservations: [VNHumanBodyPoseObservation] = []
     
     private var playerStats = PlayerStats()
     private var lastShotMetrics = ShotMetrics()
     
-    weak var delegate: ContentAnalysisVCDelegate?
-    
-    private var showShotMetrics = false
-    
     // MARK: - Life Cycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        print("amerika| viewDidLoad called")
         startObservingStateChanges()
+        setupDetectHoopRequest()
+        setupBoardBoundingBox()
         setUIElements()
         configureView()
-        setupBoardBoundingBox()
-        setupDetectHoopRequest()
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -144,12 +128,18 @@ class ContentAnalysisViewController: UIViewController {
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         stopObservingStateChanges()
-//        cameraViewController.stopCameraSession()
-//        recordedVideoSource = nil
-//        detectTrajectoryRequest = nil
-//        detectPlayerRequest = nil
-//        hoopDetectionRequest = nil
     }
+    
+    // MARK: - Init
+    
+//    init(recordedVideoSource: AVAsset? = nil) {
+//        self.recordedVideoSource = recordedVideoSource
+//        super.init(nibName: nil, bundle: nil)
+//    }
+//    
+//    required init?(coder: NSCoder) {
+//        fatalError("init(coder:) has not been implemented")
+//    }
     
     // MARK: - Public Methods
     
@@ -181,11 +171,11 @@ class ContentAnalysisViewController: UIViewController {
         var box = CGRect.zero
         var normalizedBoundingBox = CGRect.null
         // Process body points only if the confidence is high.
-        guard observation.confidence > bodyPoseDetectionMinConfidence, let points = try? observation.recognizedPoints(forGroupKey: .all) else {
+        guard observation.confidence > GameConstants.bodyPoseDetectionMinConfidence, let points = try? observation.recognizedPoints(forGroupKey: .all) else {
             return box
         }
         // Only use point if human pose joint was detected reliably.
-        for (_, point) in points where point.confidence > bodyPoseRecognizedPointMinConfidence {
+        for (_, point) in points where point.confidence > GameConstants.bodyPoseRecognizedPointMinConfidence {
             normalizedBoundingBox = normalizedBoundingBox.union(CGRect(origin: point.location, size: .zero))
         }
         if !normalizedBoundingBox.isNull {
@@ -476,7 +466,7 @@ extension ContentAnalysisViewController {
 //                delegate.showLastShowMetrics(metrics: nil)
             }
         } else {
-            for path in results where path.confidence > trajectoryDetectionMinConfidence {
+            for path in results where path.confidence > GameConstants.trajectoryDetectionMinConfidence {
                 // VNDetectTrajectoriesRequest has returned some trajectory observations.
                 // Process the path only when the confidence is over 90%.
                 self.trajectoryView.duration = path.timeRange.duration.seconds

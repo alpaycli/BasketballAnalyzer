@@ -56,7 +56,7 @@ class CameraViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        startObservingStateChanges()
+//        startObservingStateChanges()
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -272,21 +272,21 @@ class CameraViewController: UIViewController {
     }
 }
 
-extension CameraViewController: GameStateChangeObserver {
-    func gameManagerDidEnter(state: GameManager.State, from previousState: GameManager.State?) {
-        if state is GameManager.SetupCameraState {
-            do {
-                if let video = gameManager.recordedVideoSource {
-                    startReadingAsset(video)
-                } else {
-                    try setupAVSession()
-                }
-            } catch {
+//extension CameraViewController: GameStateChangeObserver {
+//    func gameManagerDidEnter(state: GameManager.State, from previousState: GameManager.State?) {
+//        if state is GameManager.SetupCameraState {
+//            do {
+//                if let video = gameManager.recordedVideoSource {
+//                    startReadingAsset(video)
+//                } else {
+//                    try setupAVSession()
+//                }
+//            } catch {
 //                AppError.display(error, inViewController: self)
-            }
-        }
-    }
-}
+//            }
+//        }
+//    }
+//}
 
 extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {

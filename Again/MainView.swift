@@ -177,6 +177,14 @@ struct MainView: View {
                         }
                     
                     Button("Live Camera") {
+                        GameManager.shared.reset()
+                        GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
+                        
+                        // to not see previous videos last shot metrics on the initial
+                        lastShotMetrics = nil
+                        playerStats = nil
+                        
+                        
                         isLiveCameraSelected = true
                     }
                 }
