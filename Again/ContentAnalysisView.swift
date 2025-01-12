@@ -113,9 +113,8 @@ class ContentAnalysisViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        print("amerika| viewDidLoad called")
         startObservingStateChanges()
-        setupDetectHoopRequest()
+        setupHoopDetectionRequest()
         setupBoardBoundingBox()
         setUIElements()
         configureView()
@@ -223,6 +222,7 @@ class ContentAnalysisViewController: UIViewController {
         cameraViewController.endAppearanceTransition()
         cameraViewController.didMove(toParent: self)
         
+        view.bringSubviewToFront(boardBoundingBox)
         view.bringSubviewToFront(playerBoundingBox)
         view.bringSubviewToFront(jointSegmentView)
         view.bringSubviewToFront(trajectoryView)
@@ -244,33 +244,6 @@ class ContentAnalysisViewController: UIViewController {
                 
         // TODO: add close button
     }
-    
-    // This helper function is used to convert points returned by Vision to the video content rect coordinates.
-    //
-    // The video content rect (camera preview or pre-recorded video)
-    // is scaled to fit into the view controller's view frame preserving the video's aspect ratio
-    // and centered vertically and horizontally inside the view.
-    //
-    // Vision coordinates have origin at the bottom left corner and are normalized from 0 to 1 for both dimensions.
-    //
-    func viewPointForVisionPoint(_ visionPoint: CGPoint) -> CGPoint {
-        let flippedPoint = visionPoint.applying(CGAffineTransform.verticalFlip)
-        let viewPoint: CGPoint
-        if recordedVideoSource != nil {
-            viewPoint = self.viewPointConverted(fromNormalizedContentsPoint: flippedPoint)
-        } else {
-            viewPoint = .zero
-//            viewPoint = cameraFeedView.viewPointConverted(fromNormalizedContentsPoint: flippedPoint)
-        }
-        return viewPoint
-    }
-    
-    func viewPointConverted(fromNormalizedContentsPoint normalizedPoint: CGPoint) -> CGPoint {
-        let videoRect = view.bounds
-        let convertedPoint = CGPoint(x: videoRect.origin.x + normalizedPoint.x * videoRect.width,
-                                     y: videoRect.origin.y + normalizedPoint.y * videoRect.height)
-        return convertedPoint
-    }
 }
 
 // MARK: - CameraViewController delegate action
@@ -279,11 +252,11 @@ extension ContentAnalysisViewController {
     func cameraVCDelegateAction(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) {
         // video camera actions
         if hoopRegion.isEmpty {
-        do {
-            try detectBoard(controller, buffer, orientation)
-        } catch {
-            print("detect board error", error.localizedDescription)
-        }
+            do {
+                try detectBoard(controller, buffer, orientation)
+            } catch {
+                print("detect board error", error.localizedDescription)
+            }
         }
         
         let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
@@ -405,7 +378,7 @@ extension ContentAnalysisViewController {
                 boardBoundingBox.visionPath = highlightPath.cgPath
                 boardBoundingBox.borderColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0.199807363)
                 
-                self.gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
+                gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
             }
         }
     }
@@ -418,37 +391,16 @@ extension ContentAnalysisViewController {
         boardBoundingBox.backgroundOpacity = 0.45
         boardBoundingBox.isHidden = true
         view.addSubview(boardBoundingBox)
+        view.bringSubviewToFront(boardBoundingBox)
     }
     
-    private func setupDetectHoopRequest() {
+    private func setupHoopDetectionRequest() {
         do {
             // Create Vision request based on CoreML model
             let model = try VNCoreMLModel(for: HoopDetectorBeta13x13(configuration: MLModelConfiguration()).model)
             hoopDetectionRequest = VNCoreMLRequest(model: model)
-            
-            // Since board is close to the side of a landscape image,
-            // we need to set crop and scale option to scaleFit.
-            // By default vision request will run on centerCrop.
-//            hoopDetectionRequest.imageCropAndScaleOption = .scaleFit
-            
-//            guard let results = hoopDetectionRequest.results as? [VNRecognizedObjectObservation] else {
-//                print("No results found.")
-//                return
-//            }
-//
-//            // Iterate through results
-//            for observation in results {
-//                // Access labels and confidence
-//                let topLabel = observation.labels.first
-//                if let label = topLabel {
-//                    print("Detected: \(label.identifier), Confidence: \(label.confidence)")
-//                }
-//
-//                // Access bounding box
-//                print("Bounding Box: \(observation.boundingBox)")
-//            }
         } catch {
-            print("*****boundingbox/", error.localizedDescription)
+            print("setupDetectHoopRequest error:", error.localizedDescription)
         }
     }
 }
@@ -462,8 +414,6 @@ extension ContentAnalysisViewController {
             self.noObservationFrameCount += 1
             if self.noObservationFrameCount > GameConstants.noObservationFrameLimit {
                 throwCompletedAction(controller)
-//                showShotMetrics = false
-//                delegate.showLastShowMetrics(metrics: nil)
             }
         } else {
             for path in results where path.confidence > GameConstants.trajectoryDetectionMinConfidence {
@@ -501,7 +451,6 @@ extension ContentAnalysisViewController {
 
 extension ContentAnalysisViewController {
     func updatePlayerStats(_ controller: CameraViewController, shotResult: ShotResult) {
-        
         // Compute the speed in mph
         // trajectoryView.speed is in points/second, convert that to meters/second by multiplying the pointToMeterMultiplier.
         // 1 meters/second = 2.24 miles/hour
@@ -528,7 +477,7 @@ extension ContentAnalysisViewController {
     
     private func throwCompletedAction(_ controller: CameraViewController) {
         let trajectoryPoints = trajectoryView.points
-            .map { viewPointForVisionPoint($0.location) }
+            .map { controller.viewPointForVisionPoint($0.location) }
         guard !trajectoryPoints.isEmpty else { return }
         
         var shotResult: ShotResult = .miss(.none)
