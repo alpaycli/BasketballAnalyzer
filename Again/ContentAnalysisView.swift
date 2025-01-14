@@ -50,18 +50,21 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
             vc?.cameraVCDelegateAction(controller, didReceiveBuffer: buffer, orientation: orientation)
         }
         
-        func showLastShowMetrics(metrics: ShotMetrics) {
+        func showLastShowMetrics(metrics: ShotMetrics, playerStats: PlayerStats) {
             parent.lastShotMetrics = metrics
+            parent.playerStats = playerStats
         }
         
         func showSummary(stats: PlayerStats) {
             parent.playerStats = stats
+            // TODO: Fix
+//            parent.gameEnded = true
         }
     }
 }
 
 protocol ContentAnalysisVCDelegate: AnyObject {
-    func showLastShowMetrics(metrics: ShotMetrics)
+    func showLastShowMetrics(metrics: ShotMetrics, playerStats: PlayerStats)
     func showSummary(stats: PlayerStats)
 }
 
@@ -541,7 +544,7 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
                 self.gameManager.stateMachine.enter(GameManager.DetectingPlayerState.self)
 //            }
         case is GameManager.ThrowCompletedState:
-            delegate?.showLastShowMetrics(metrics: lastShotMetrics)
+            delegate?.showLastShowMetrics(metrics: lastShotMetrics, playerStats: playerStats)
 //            dashboardView.speed = lastThrowMetrics.releaseSpeed
 //            dashboardView.animateSpeedChart()
 //            playerStats.adjustMetrics(score: lastThrowMetrics.score, speed: lastThrowMetrics.releaseSpeed,

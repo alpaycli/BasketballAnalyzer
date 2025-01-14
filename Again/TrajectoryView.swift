@@ -96,7 +96,7 @@ class TrajectoryView: UIView, AnimatedTransitioning {
         shadowLayer.fillColor = UIColor.clear.cgColor
         shadowLayer.strokeColor = #colorLiteral(red: 0.9882352941, green: 0.4666666667, blue: 0, alpha: 0.4519210188).cgColor
         layer.addSublayer(shadowLayer)
-        blurLayer.lineWidth = 8.0
+        blurLayer.lineWidth = 3.0
         blurLayer.lineCap = .round
         blurLayer.fillColor = UIColor.clear.cgColor
         blurLayer.strokeColor = #colorLiteral(red: 0.9960784314, green: 0.737254902, blue: 0, alpha: 0.597468964).cgColor

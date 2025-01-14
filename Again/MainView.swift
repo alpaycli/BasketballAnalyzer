@@ -57,7 +57,7 @@ struct MainView: View {
 ////                    Path(roundedRect: boardRect, cornerRadius: 5)
 //                }
                 
-                ContentAnalysisView(recordedVideoSource: recordedVideoSource, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats)
+                ContentAnalysisView(recordedVideoSource: recordedVideoSource, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats.animation())
                     .zIndex(99)
                     .overlay(alignment: .bottomTrailing) {
                         if let lastShotMetrics {
@@ -75,24 +75,24 @@ struct MainView: View {
                             .padding()
                         }
                     }
-                    .overlay {
-                        if let lastShotMetrics, showShotResultLabel {
-                            Text(lastShotMetrics.shotResult.description)
-                                .font(.largeTitle)
-                                .zIndex(999)
-                                .animation(.easeInOut, value: showShotResultLabel)
-                                .transition(.scale)
-                        }
-                    }
-                    .overlay {
-                        if let playerStats {
-                            Text("Game is Over, Here is your Summary.")
-                                .font(.largeTitle)
-                                .zIndex(999)
-                                .animation(.easeInOut, value: playerStats != nil)
-                                .transition(.scale)
-                        }
-                    }
+//                    .overlay {
+//                        if let lastShotMetrics, showShotResultLabel {
+//                            Text(lastShotMetrics.shotResult.description)
+//                                .font(.largeTitle)
+//                                .zIndex(999)
+//                                .animation(.easeInOut, value: showShotResultLabel)
+//                                .transition(.scale)
+//                        }
+//                    }
+//                    .overlay {
+//                        if gameEnded {
+//                            Text("Game is Over, Here is your Summary.")
+//                                .font(.largeTitle)
+//                                .zIndex(999)
+//                                .animation(.easeInOut, value: playerStats != nil)
+//                                .transition(.scale)
+//                        }
+//                    }
                 
 //                CameraView(recordedVideoAsset: recordedVideoSource)
 //                    .onTapGesture {
@@ -123,6 +123,34 @@ struct MainView: View {
         .overlay(alignment: .topLeading) {
             if recordedVideoSource != nil || isLiveCameraSelected {
                 closeButton
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if recordedVideoSource != nil || isLiveCameraSelected {
+                HStack {
+                    VStack {
+                        Text(playerStats?.totalScore.formatted() ?? "0")
+                            .font(.largeTitle)
+                            .fontDesign(.monospaced)
+                            .contentTransition(.numericText())
+                        Text("make")
+                            .font(.headline.uppercaseSmallCaps())
+//                            .foregroundStyle(.secondary)
+                    }
+                    Text("/")
+                        .font(.largeTitle)
+                        .padding(.horizontal)
+                    VStack {
+                        Text(playerStats?.shotCount.formatted() ?? "0")
+                            .font(.largeTitle)
+                            .fontDesign(.monospaced)
+                            .contentTransition(.numericText())
+                        Text("attempt")
+                            .font(.headline.uppercaseSmallCaps())
+//                            .foregroundStyle(.secondary)
+                    }
+                }
+                .foregroundStyle(.white.gradient)
             }
         }
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in

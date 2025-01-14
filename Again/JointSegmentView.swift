@@ -78,9 +78,9 @@ let jointsOfInterest: [VNHumanBodyPoseObservation.JointName] = [
     .rightWrist,
     .rightElbow,
     .rightShoulder,
-    .leftWrist,
-    .leftElbow,
-    .leftShoulder,
+//    .leftWrist,
+//    .leftElbow,
+//    .leftShoulder,
     .rightHip,
     .rightKnee,
     .rightAnkle
