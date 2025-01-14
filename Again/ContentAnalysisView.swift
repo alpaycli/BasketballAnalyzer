@@ -214,7 +214,6 @@ class ContentAnalysisViewController: UIViewController {
     private func configureView() {
         
         // Set up the video layers.
-//        cameraViewController = CameraViewController()
         cameraViewController.view.frame = view.bounds
         addChild(cameraViewController)
         cameraViewController.beginAppearanceTransition(true, animated: true)
@@ -226,7 +225,7 @@ class ContentAnalysisViewController: UIViewController {
         view.bringSubviewToFront(playerBoundingBox)
         view.bringSubviewToFront(jointSegmentView)
         view.bringSubviewToFront(trajectoryView)
-//
+        
         do {
             if recordedVideoSource != nil {
                 // Start reading the video.
@@ -239,10 +238,6 @@ class ContentAnalysisViewController: UIViewController {
             print("error--", error.localizedDescription)
 //            AppError.display(error, inViewController: self)
         }
-        
-//        cameraViewController.outputDelegate = self
-                
-        // TODO: add close button
     }
 }
 
@@ -261,56 +256,13 @@ extension ContentAnalysisViewController {
         
         let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
         if gameManager.stateMachine.currentState is GameManager.TrackThrowsState {
-            DispatchQueue.main.async {
-                // Get the frame of rendered view
-                let normalizedFrame = CGRect(x: 0, y: 0, width: 1, height: 1)
-                self.jointSegmentView.frame = controller.viewRectForVisionRect(normalizedFrame)
-                self.trajectoryView.frame = controller.viewRectForVisionRect(normalizedFrame)
-            }
-            // Perform the trajectory request in a separate dispatch queue.
-            trajectoryQueue.async {
-                do {
-                    try visionHandler.perform([self.detectTrajectoryRequest])
-                    if let results = self.detectTrajectoryRequest.results {
-//                        print("*trajectoryresults.count", results.count)
-                        DispatchQueue.main.async {
-                            self.processTrajectoryObservations(controller, results)
-                        }
-                    }
-                } catch {
-                    print("error", error.localizedDescription)
-                }
-            }
+            detectTrajectory(visionHandler: visionHandler, controller)
         }
         
         if !(self.trajectoryView.inFlight && self.trajectoryInFlightPoseObservations >= GameConstants.maxTrajectoryInFlightPoseObservations) {
-            do {
-                try visionHandler.perform([detectPlayerRequest])
-                if let result = detectPlayerRequest.results?.first {
-                    let box = humanBoundingBox(for: result)
-                    let boxView = playerBoundingBox
-                    DispatchQueue.main.async {
-                        let inset: CGFloat = -20.0
-                        let viewRect = controller.viewRectForVisionRect(box).insetBy(dx: inset, dy: inset)
-                        self.updateBoundingBox(boxView, withRect: viewRect)
-                        if !self.playerDetected && !boxView.isHidden {
-//                            self.gameStatusLabel.alpha = 0
-//                            self.resetTrajectoryRegions()
-                            self.gameManager.stateMachine.enter(GameManager.DetectedPlayerState.self)
-                        }
-                    }
-                }
-            } catch {
-                print("error", error.localizedDescription)
-            }
+            detectPlayer(visionHandler: visionHandler, controller)
         } else {
-            // Hide player bounding box
-            DispatchQueue.main.async {
-                if !self.playerBoundingBox.isHidden {
-                    self.playerBoundingBox.isHidden = true
-                    self.jointSegmentView.resetView()
-                }
-            }
+            hidePlayerBoundingBox()
         }
     }
 }
@@ -408,7 +360,30 @@ extension ContentAnalysisViewController {
 // MARK: - Trajectory stuff
 
 extension ContentAnalysisViewController {
-    func processTrajectoryObservations(_ controller: CameraViewController, _ results: [VNTrajectoryObservation]) {
+    private func detectTrajectory(visionHandler: VNImageRequestHandler, _ controller: CameraViewController) {
+        DispatchQueue.main.async {
+            // Get the frame of rendered view
+            let normalizedFrame = CGRect(x: 0, y: 0, width: 1, height: 1)
+            self.jointSegmentView.frame = controller.viewRectForVisionRect(normalizedFrame)
+            self.trajectoryView.frame = controller.viewRectForVisionRect(normalizedFrame)
+        }
+        // Perform the trajectory request in a separate dispatch queue.
+        trajectoryQueue.async {
+            do {
+                try visionHandler.perform([self.detectTrajectoryRequest])
+                if let results = self.detectTrajectoryRequest.results {
+//                        print("*trajectoryresults.count", results.count)
+                    DispatchQueue.main.async {
+                        self.processTrajectoryObservations(controller, results)
+                    }
+                }
+            } catch {
+                print("error", error.localizedDescription)
+            }
+        }
+    }
+    
+    private func processTrajectoryObservations(_ controller: CameraViewController, _ results: [VNTrajectoryObservation]) {
         if self.trajectoryView.inFlight && results.count < 1 {
             // The trajectory is already in flight but VNDetectTrajectoriesRequest doesn't return any trajectory observations.
             self.noObservationFrameCount += 1
@@ -447,10 +422,45 @@ extension ContentAnalysisViewController {
     }
 }
 
+// MARK: - Detect player stuff
+
+extension ContentAnalysisViewController {
+    private func detectPlayer(visionHandler: VNImageRequestHandler, _ controller: CameraViewController) {
+        do {
+            try visionHandler.perform([detectPlayerRequest])
+            if let result = detectPlayerRequest.results?.first {
+                let box = humanBoundingBox(for: result)
+                let boxView = playerBoundingBox
+                DispatchQueue.main.async {
+                    let inset: CGFloat = -20.0
+                    let viewRect = controller.viewRectForVisionRect(box).insetBy(dx: inset, dy: inset)
+                    self.updateBoundingBox(boxView, withRect: viewRect)
+                    if !self.playerDetected && !boxView.isHidden {
+//                            self.gameStatusLabel.alpha = 0
+//                            self.resetTrajectoryRegions()
+                        self.gameManager.stateMachine.enter(GameManager.DetectedPlayerState.self)
+                    }
+                }
+            }
+        } catch {
+            print("error", error.localizedDescription)
+        }
+    }
+    
+    func hidePlayerBoundingBox() {
+        DispatchQueue.main.async {
+            if !self.playerBoundingBox.isHidden {
+                self.playerBoundingBox.isHidden = true
+                self.jointSegmentView.resetView()
+            }
+        }
+    }
+}
+
 // MARK: -
 
 extension ContentAnalysisViewController {
-    func updatePlayerStats(_ controller: CameraViewController, shotResult: ShotResult) {
+    private func updatePlayerStats(_ controller: CameraViewController, shotResult: ShotResult) {
         // Compute the speed in mph
         // trajectoryView.speed is in points/second, convert that to meters/second by multiplying the pointToMeterMultiplier.
         // 1 meters/second = 2.24 miles/hour
