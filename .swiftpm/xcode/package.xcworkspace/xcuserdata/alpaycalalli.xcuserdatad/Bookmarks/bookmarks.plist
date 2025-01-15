@@ -18,7 +18,7 @@
 					<key>StartingLineNumber</key>
 					<string>293</string>
 					<key>Timestamp</key>
-					<string>758557968.35653</string>
+					<string>758585009.994867</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -65,7 +65,7 @@
 					<key>StartingLineNumber</key>
 					<string>404</string>
 					<key>Timestamp</key>
-					<string>758557968.35648</string>
+					<string>758585009.994886</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -106,13 +106,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>105</string>
+					<string>75</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>104</string>
+					<string>74</string>
 					<key>Timestamp</key>
-					<string>758558061.331205</string>
+					<string>758627002.9732341</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -128,16 +128,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>                    Button("Import video") { showFileImporter = true }
+				<string>                    print("failure", error.localizedDescription)
 </string>
 				<key>leading</key>
-				<string>            } else {
-                VStack {
+				<string>                    handleImportedVideoFileURL(url)
+                case let .failure(error):
 </string>
 				<key>trailing</key>
-				<string>                    
-                    Button("Live Camera") {
-                        GameManager.shared.reset()
+				<string>                }
+            })
+//            .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
 </string>
 			</dict>
 			<key>title</key>

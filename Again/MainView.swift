@@ -45,128 +45,43 @@ struct MainView: View {
     @State private var showShotResultLabel = false
     
     var body: some View {
-        ZStack {
-            if let recordedVideoSource {
-//                if let boardRect {
-//                    Path(boardRect)
-//                        .stroke(.primary, lineWidth: 2)
-//                        .zIndex(100)
-//                        .onChange(of: boardRect) { old, new in
-//                            print("boardrect", new)
-//                        }
-////                    Path(roundedRect: boardRect, cornerRadius: 5)
-//                }
+        NavigationStack {
+            VStack {
+                Button("Import video") { showFileImporter = true }
                 
-                ContentAnalysisView(recordedVideoSource: recordedVideoSource, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats.animation())
-                    .zIndex(99)
-                    .overlay(alignment: .bottomTrailing) {
-                        if let lastShotMetrics {
-                            VStack {
-                                Text(lastShotMetrics.releaseAngle.formatted())
-                                    .font(.largeTitle)
-                                    .zIndex(999)
-                                    .foregroundStyle(.white)
-                                
-                                Text("Ball Speed: " + lastShotMetrics.speed.formatted() + " MPH")
-                                    .font(.largeTitle)
-                                    .zIndex(999)
-                                    .foregroundStyle(.white)
-                            }
-                            .padding()
-                        }
-                    }
-//                    .overlay {
-//                        if let lastShotMetrics, showShotResultLabel {
-//                            Text(lastShotMetrics.shotResult.description)
-//                                .font(.largeTitle)
-//                                .zIndex(999)
-//                                .animation(.easeInOut, value: showShotResultLabel)
-//                                .transition(.scale)
-//                        }
-//                    }
-//                    .overlay {
-//                        if gameEnded {
-//                            Text("Game is Over, Here is your Summary.")
-//                                .font(.largeTitle)
-//                                .zIndex(999)
-//                                .animation(.easeInOut, value: playerStats != nil)
-//                                .transition(.scale)
-//                        }
-//                    }
-                
-//                CameraView(recordedVideoAsset: recordedVideoSource)
-//                    .onTapGesture {
-//                        showFileImporter = true
-//                    }
-            } else if isLiveCameraSelected {
-                ContentAnalysisView(recordedVideoSource: nil, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats)
-            } else {
-                VStack {
-                    Button("Import video") { showFileImporter = true }
+                Button("Live Camera") {
+                    GameManager.shared.reset()
+                    GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
                     
-                    Button("Live Camera") {
-                        GameManager.shared.reset()
-                        GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
-                        
-                        // to not see previous videos last shot metrics on the initial
-                        lastShotMetrics = nil
-                        playerStats = nil
-                        
-                        
-                        isLiveCameraSelected = true
-                    }
+                    // to not see previous videos last shot metrics on the initial
+                    lastShotMetrics = nil
+                    playerStats = nil
+                    
+                    
+                    isLiveCameraSelected = true
                 }
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .ignoresSafeArea()
-        .overlay(alignment: .topLeading) {
-            if recordedVideoSource != nil || isLiveCameraSelected {
-                closeButton
+            .navigationDestination(item: $recordedVideoSource) { item in
+                contentViewWithRecordedVideo(item)
             }
-        }
-        .overlay(alignment: .bottom) {
-            if recordedVideoSource != nil || isLiveCameraSelected {
-                HStack {
-                    VStack {
-                        Text(playerStats?.totalScore.formatted() ?? "0")
-                            .font(.largeTitle)
-                            .fontDesign(.monospaced)
-                            .contentTransition(.numericText())
-                        Text("make")
-                            .font(.headline.uppercaseSmallCaps())
-//                            .foregroundStyle(.secondary)
-                    }
-                    Text("/")
-                        .font(.largeTitle)
-                        .padding(.horizontal)
-                    VStack {
-                        Text(playerStats?.shotCount.formatted() ?? "0")
-                            .font(.largeTitle)
-                            .fontDesign(.monospaced)
-                            .contentTransition(.numericText())
-                        Text("attempt")
-                            .font(.headline.uppercaseSmallCaps())
-//                            .foregroundStyle(.secondary)
-                    }
+            .navigationDestination(isPresented: $isLiveCameraSelected) {
+                contentViewWithLiveCamera
+            }
+            .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
+                switch result {
+                case let .success(url):
+                    handleImportedVideoFileURL(url)
+                case let .failure(error):
+                    print("failure", error.localizedDescription)
                 }
-                .foregroundStyle(.white.gradient)
-            }
-        }
-        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
-            switch result {
-            case let .success(url):
-                handleImportedVideoFileURL(url)
-            case let .failure(error):
-                print("failure", error.localizedDescription)
-            }
-        })
-//        .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
-//        .onChange(of: photo) { oldValue, newValue in
-//            if let newValue {
-//                handlePhotoPickerSelection(newValue)
+            })
+//            .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
+//            .onChange(of: photo) { oldValue, newValue in
+//                if let newValue {
+//                    handlePhotoPickerSelection(newValue)
+//                }
 //            }
-//        }
+        }
     }
 }
 
@@ -244,5 +159,91 @@ extension MainView {
         .labelStyle(.iconOnly)
         .font(.largeTitle)
         .background(.gray, in: .circle)
+    }
+    
+    private var makeAndAttemptsView: some View {
+        HStack {
+            VStack {
+                Text(playerStats?.totalScore.formatted() ?? "0")
+                    .font(.largeTitle)
+                    .fontDesign(.monospaced)
+                    .contentTransition(.numericText())
+                Text("make")
+                    .font(.headline.uppercaseSmallCaps())
+//                            .foregroundStyle(.secondary)
+            }
+            Text("/")
+                .font(.largeTitle)
+                .padding(.horizontal)
+            VStack {
+                Text(playerStats?.shotCount.formatted() ?? "0")
+                    .font(.largeTitle)
+                    .fontDesign(.monospaced)
+                    .contentTransition(.numericText())
+                Text("attempt")
+                    .font(.headline.uppercaseSmallCaps())
+//                            .foregroundStyle(.secondary)
+            }
+        }
+        .foregroundStyle(.white.gradient)
+    }
+}
+
+// MARK: -
+
+extension MainView {
+    private func contentViewWithRecordedVideo(_ item: AVAsset) -> some View {
+        ContentAnalysisView(recordedVideoSource: item, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats.animation())
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
+            .overlay(alignment: .bottomTrailing) {
+                if let lastShotMetrics {
+                    VStack {
+                        Text(lastShotMetrics.releaseAngle.formatted())
+                            .zIndex(999)
+                            .foregroundStyle(.white)
+                        
+                        Text("Ball Speed: " + lastShotMetrics.speed.formatted() + " MPH")
+                            .zIndex(999)
+                            .foregroundStyle(.white)
+                    }
+                    .padding()
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                closeButton
+            }
+            .overlay(alignment: .bottom) {
+                makeAndAttemptsView
+            }
+            .toolbarVisibility(.hidden, for: .navigationBar)
+    }
+    
+    private var contentViewWithLiveCamera: some View {
+        ContentAnalysisView(recordedVideoSource: nil, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats.animation())
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
+            .overlay(alignment: .bottomTrailing) {
+                if let lastShotMetrics {
+                    VStack {
+                        Text(lastShotMetrics.releaseAngle.formatted())
+                            .zIndex(999)
+                            .foregroundStyle(.white)
+                        
+                        Text("Ball Speed: " + lastShotMetrics.speed.formatted() + " MPH")
+                            .zIndex(999)
+                            .foregroundStyle(.white)
+                    }
+                    .padding()
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                closeButton
+            }
+            .overlay(alignment: .bottom) {
+                makeAndAttemptsView
+            }
+            .toolbarVisibility(.hidden, for: .navigationBar)
+        
     }
 }
