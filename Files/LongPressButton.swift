@@ -79,8 +79,9 @@ struct LongPressButton: View {
                       progress = max(min(timerCount / duration, 1), 0)
                   }
               }
-          
               .onAppear(perform: cancelTimer)
+              .sensoryFeedback(.impact(weight: .light), trigger: timerCount)
+              .sensoryFeedback(.success, trigger: isDone)
       }
       
       
