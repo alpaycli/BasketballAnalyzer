@@ -167,6 +167,7 @@ extension MainView {
                 Text(playerStats?.totalScore.formatted() ?? "0")
                     .font(.largeTitle)
                     .fontDesign(.monospaced)
+                    .animation(.default, value: playerStats?.totalScore)
                     .contentTransition(.numericText())
                 Text("make")
                     .font(.headline.uppercaseSmallCaps())
@@ -179,6 +180,7 @@ extension MainView {
                 Text(playerStats?.shotCount.formatted() ?? "0")
                     .font(.largeTitle)
                     .fontDesign(.monospaced)
+                    .animation(.default, value: playerStats?.totalScore)
                     .contentTransition(.numericText())
                 Text("attempt")
                     .font(.headline.uppercaseSmallCaps())
@@ -193,7 +195,7 @@ extension MainView {
 
 extension MainView {
     private func contentViewWithRecordedVideo(_ item: AVAsset) -> some View {
-        ContentAnalysisView(recordedVideoSource: item, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats.animation())
+        ContentAnalysisView(recordedVideoSource: item, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .bottomTrailing) {
@@ -215,12 +217,15 @@ extension MainView {
             }
             .overlay(alignment: .bottom) {
                 makeAndAttemptsView
+            }
+            .overlay(alignment: .bottomTrailing) {
+                LongPressButton(duration: 0.4)
             }
             .toolbarVisibility(.hidden, for: .navigationBar)
     }
     
     private var contentViewWithLiveCamera: some View {
-        ContentAnalysisView(recordedVideoSource: nil, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats.animation())
+        ContentAnalysisView(recordedVideoSource: nil, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .bottomTrailing) {
@@ -243,7 +248,25 @@ extension MainView {
             .overlay(alignment: .bottom) {
                 makeAndAttemptsView
             }
+            .overlay(alignment: .bottomTrailing) {
+                LongPressButton(duration: 0.4)
+            }
             .toolbarVisibility(.hidden, for: .navigationBar)
         
     }
+}
+
+#Preview {
+    Button("Stop", systemImage: "stop.circle") {
+        
+    }
+    .padding(.horizontal, 20)
+    .padding(.vertical, 10)
+    .background(.red.gradient, in: .rect(cornerRadius: 10, style: .continuous))
+    .foregroundStyle(.white)
+    .fontWeight(.bold)
+    .font(.headline.smallCaps())
+    
+    LongPressButton(duration: 0.4)
+//        .frame(width: 120, height: 50)
 }
