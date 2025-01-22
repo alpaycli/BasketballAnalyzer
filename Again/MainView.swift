@@ -16,6 +16,9 @@ struct MainView: View {
     
     // MARK: -
     
+    @State var setupGuideLabel: String?
+    @State var setupStateModel = SetupStateModel()
+    
     @State private var recordedVideoSource: AVAsset?
     @State private var isLiveCameraSelected = false
     
@@ -56,7 +59,7 @@ struct MainView: View {
                     // to not see previous videos last shot metrics on the initial
                     lastShotMetrics = nil
                     playerStats = nil
-                    
+                    setupGuideLabel = nil
                     
                     isLiveCameraSelected = true
                 }
@@ -140,6 +143,7 @@ extension MainView {
                 // to not see previous videos last shot metrics on the initial
                 lastShotMetrics = nil
                 playerStats = nil
+                setupGuideLabel = nil
                 
                 recordedVideoSource = AVURLAsset(url: selectedFileURL)
             }
@@ -195,19 +199,27 @@ extension MainView {
 
 extension MainView {
     private func contentViewWithRecordedVideo(_ item: AVAsset) -> some View {
-        ContentAnalysisView(recordedVideoSource: item, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats)
+        ContentAnalysisView(recordedVideoSource: item, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
-            .overlay(alignment: .bottomTrailing) {
+            .overlay(alignment: .bottomLeading) {
                 if let lastShotMetrics {
-                    VStack {
+                    VStack(alignment: .leading) {
+                        Text("Release Angel: ")
+//                            .zIndex(999)
+                            .foregroundStyle(.white)
+                        +
                         Text(lastShotMetrics.releaseAngle.formatted())
-                            .zIndex(999)
-                            .foregroundStyle(.white)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.orange)
                         
-                        Text("Ball Speed: " + lastShotMetrics.speed.formatted() + " MPH")
-                            .zIndex(999)
+                        Text("Ball Speed: ")
+//                            .zIndex(999)
                             .foregroundStyle(.white)
+                        +
+                        Text(lastShotMetrics.speed.formatted() + " MPH")
+                            .fontWeight(.bold)
+                            .foregroundStyle(.orange)
                     }
                     .padding()
                 }
@@ -221,23 +233,62 @@ extension MainView {
             .overlay(alignment: .bottomTrailing) {
                 LongPressButton(duration: 0.4)
             }
+            .overlay(alignment: .top) {
+                if let setupGuideLabel {
+                    Text(setupGuideLabel)
+                        .font(.largeTitle)
+                        .padding()
+                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
+                        .foregroundStyle(.black)
+                }
+            }
+            .overlay {
+                VStack(alignment: .leading) {
+                    Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
+                    Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
+                    Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
+                }
+                .fontDesign(.monospaced)
+                .foregroundStyle(.black)
+                .padding()
+//                .frame(width: 200, height: 100)
+                .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
+            }
+//            .overlay(alignment: .topTrailing) {
+//                VStack(alignment: .trailing) {
+//                    Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
+//                    Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
+//                    Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
+//                }
+//                .fontDesign(.monospaced)
+//                .foregroundStyle(.black)
+//                .padding()
+//            }
             .toolbarVisibility(.hidden, for: .navigationBar)
     }
     
     private var contentViewWithLiveCamera: some View {
-        ContentAnalysisView(recordedVideoSource: nil, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats)
+        ContentAnalysisView(recordedVideoSource: nil, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
-            .overlay(alignment: .bottomTrailing) {
+            .overlay(alignment: .bottomLeading) {
                 if let lastShotMetrics {
-                    VStack {
+                    VStack(alignment: .leading) {
+                        Text("Release Angel: ")
+//                            .zIndex(999)
+                            .foregroundStyle(.white)
+                        +
                         Text(lastShotMetrics.releaseAngle.formatted())
-                            .zIndex(999)
-                            .foregroundStyle(.white)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.orange)
                         
-                        Text("Ball Speed: " + lastShotMetrics.speed.formatted() + " MPH")
-                            .zIndex(999)
+                        Text("Ball Speed: ")
+//                            .zIndex(999)
                             .foregroundStyle(.white)
+                        +
+                        Text(lastShotMetrics.speed.formatted() + " MPH")
+                            .fontWeight(.bold)
+                            .foregroundStyle(.orange)
                     }
                     .padding()
                 }
@@ -251,6 +302,37 @@ extension MainView {
             .overlay(alignment: .bottomTrailing) {
                 LongPressButton(duration: 0.4)
             }
+            .overlay(alignment: .top) {
+                if let setupGuideLabel {
+                    Text(setupGuideLabel)
+                        .font(.largeTitle)
+                        .padding()
+                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
+                        .foregroundStyle(.black)
+                }
+            }
+            .overlay {
+                VStack(alignment: .leading) {
+                    Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
+                    Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
+                    Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
+                }
+                .fontDesign(.monospaced)
+                .foregroundStyle(.black)
+                .padding()
+//                .frame(width: 200, height: 100)
+                .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
+            }
+//            .overlay(alignment: .topTrailing) {
+//                VStack(alignment: .trailing) {
+//                    Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
+//                    Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
+//                    Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
+//                }
+//                .fontDesign(.monospaced)
+//                .foregroundStyle(.black)
+//                .padding()
+//            }
             .toolbarVisibility(.hidden, for: .navigationBar)
         
     }

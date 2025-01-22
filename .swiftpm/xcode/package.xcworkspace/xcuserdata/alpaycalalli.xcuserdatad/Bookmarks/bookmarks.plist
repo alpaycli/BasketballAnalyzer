@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>294</string>
+					<string>317</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>293</string>
+					<string>316</string>
 					<key>Timestamp</key>
-					<string>758585009.994867</string>
+					<string>759072943.6374789</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -59,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>405</string>
+					<string>430</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>404</string>
+					<string>429</string>
 					<key>Timestamp</key>
-					<string>758585009.994886</string>
+					<string>759073221.836634</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -81,20 +81,20 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>                    
+				<string>                    // Hide the previous shot metrics once a new shot is detected.
 </string>
 				<key>leading</key>
-				<string>                if !self.trajectoryView.fullTrajectory.isEmpty {
-//                    self.updateTrajectoryRegions()
+				<string>//                    self.updateTrajectoryRegions()
+                    
 </string>
 				<key>trailing</key>
-				<string>                    // Hide the previous shot metrics once a new shot is detected.
-                    if showShotMetrics {
+				<string>                    if showShotMetrics {
                         showShotMetrics = false
+//                        delegate.showLastShowMetrics(metrics: nil)
 </string>
 			</dict>
 			<key>title</key>
-			<string>bura hec girmir deyesen</string>
+			<string>bura girir ama lazim deyil deyesen</string>
 			<key>type</key>
 			<string>bookmark</string>
 		</dict>
@@ -106,13 +106,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>75</string>
+					<string>78</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>74</string>
+					<string>77</string>
 					<key>Timestamp</key>
-					<string>758720352.139444</string>
+					<string>759071606.843311</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -142,6 +142,51 @@
 			</dict>
 			<key>title</key>
 			<string>handle error</string>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>128</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>127</string>
+					<key>Timestamp</key>
+					<string>759072148.831323</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>Again/ContentAnalysisView.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>    private let trajectoryQueue = DispatchQueue(label: "com.ActionAndVision.trajectory", qos: .userInteractive)
+</string>
+				<key>leading</key>
+				<string>    // MARK: - Others
+    
+</string>
+				<key>trailing</key>
+				<string>    
+    private var poseObservations: [VNHumanBodyPoseObservation] = []
+    
+</string>
+			</dict>
 			<key>type</key>
 			<string>bookmark</string>
 		</dict>

@@ -10,10 +10,18 @@ import UIKit
 import AVFoundation
 import Vision
 
+struct SetupStateModel {
+    var hoopDetected = false
+    var hoopContoursDetected = false
+    var playerDetected = false
+}
+
 struct ContentAnalysisView: UIViewControllerRepresentable {
     let recordedVideoSource: AVAsset?
     @Binding var lastShotMetrics: ShotMetrics?
     @Binding var playerStats: PlayerStats?
+    @Binding var setupGuideLabel: String?
+    @Binding var setupStateModel: SetupStateModel
     
     func makeUIViewController(context: Context) -> ContentAnalysisViewController {
         let vc = ContentAnalysisViewController()
@@ -60,12 +68,22 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
             // TODO: Fix
 //            parent.gameEnded = true
         }
+        
+        func showSetupGuide(_ text: String?) {
+            parent.setupGuideLabel = text
+        }
+        
+        func updateSetupState(_ model: SetupStateModel) {
+            parent.setupStateModel = model
+        }
     }
 }
 
 protocol ContentAnalysisVCDelegate: AnyObject {
     func showLastShowMetrics(metrics: ShotMetrics, playerStats: PlayerStats)
     func showSummary(stats: PlayerStats)
+    func showSetupGuide(_ text: String?)
+    func updateSetupState(_ model: SetupStateModel)
 }
 
 class ContentAnalysisViewController: UIViewController {
@@ -103,6 +121,8 @@ class ContentAnalysisViewController: UIViewController {
     private var setupComplete = false
     private var showShotMetrics = false
     
+    var setupStateModel = SetupStateModel()
+    
     // MARK: - Others
     
     private let trajectoryQueue = DispatchQueue(label: "com.ActionAndVision.trajectory", qos: .userInteractive)
@@ -130,6 +150,8 @@ class ContentAnalysisViewController: UIViewController {
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         stopObservingStateChanges()
+        setupStateModel = .init()
+        delegate?.updateSetupState(setupStateModel)
     }
     
     // MARK: - Init
@@ -250,6 +272,7 @@ extension ContentAnalysisViewController {
     func cameraVCDelegateAction(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) {
         // video camera actions
         if hoopRegion.isEmpty {
+            delegate?.showSetupGuide("Detecting Hoop")
             do {
                 try detectBoard(controller, buffer, orientation)
             } catch {
@@ -333,6 +356,7 @@ extension ContentAnalysisViewController {
                 boardBoundingBox.visionPath = highlightPath.cgPath
                 boardBoundingBox.borderColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0.199807363)
                 
+                setupStateModel.hoopContoursDetected = true
                 gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
             }
         }
@@ -479,8 +503,7 @@ extension ContentAnalysisViewController {
             jumpshotType: jumpshotType
         )
         
-        #warning("fix")
-        playerStats.storeShotPath(.init(rect: .zero, transform: .none)/*trajectoryView.fullTrajectory.cgPath*/)
+        playerStats.storeShotPath(trajectoryView.fullTrajectory.cgPath)
         playerStats.storeShotSpeed(speed)
         playerStats.storeReleaseAngle(releaseAngle)
         playerStats.adjustMetrics(isShotWentIn: shotResult == .score)
@@ -532,15 +555,20 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             playerBoundingBox.performTransition(.fadeOut, duration: 1.0)
 //            gameStatusLabel.text = "Go"
 //            gameStatusLabel.perform(transitions: [.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1) {
+            delegate?.showSetupGuide("All Good")
+            setupStateModel.playerDetected = true
+            delegate?.updateSetupState(setupStateModel)
                 self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
 //            }
         case is GameManager.TrackThrowsState:
-//            resetTrajectoryRegions()
             trajectoryView.roi = view.frame
         case is GameManager.DetectedBoardState:
 //            setupStage =  .setupComplete
 //            statusLabel.text = "Board Detected"
-//            statusLabel.perform(transitions: [.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1.5) {
+//            statusLabel.performTransitions([.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1.5) {
+            delegate?.showSetupGuide("Detecting Player")
+            setupStateModel.hoopDetected = true
+            delegate?.updateSetupState(setupStateModel)
                 self.gameManager.stateMachine.enter(GameManager.DetectingPlayerState.self)
 //            }
         case is GameManager.ThrowCompletedState:
@@ -564,6 +592,8 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
 //            gameStatusLabel.text = lastThrowMetrics.score.rawValue > 0 ? "+\(lastThrowMetrics.score.rawValue)" : ""
 //            gameStatusLabel.perform(transitions: [.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1) {
             #warning("maxShots can be changed to user's choice")
+            #warning("yada yox, live camera da stop buttona basilanda game manageri swiftui viewda showsummary state e soxmaq olar ele, ve gostermek")
+            #warning("ve video bitende")
             if self.playerStats.shotCount == GameConstants.maxShots {
                 self.gameManager.stateMachine.enter(GameManager.ShowSummaryState.self)
             } else {
