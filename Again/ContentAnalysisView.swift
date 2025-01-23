@@ -14,6 +14,11 @@ struct SetupStateModel {
     var hoopDetected = false
     var hoopContoursDetected = false
     var playerDetected = false
+    
+    /// Returns true if all setup steps are completed.
+    var isAllDone: Bool {
+        hoopDetected && hoopContoursDetected && playerDetected
+    }
 }
 
 struct ContentAnalysisView: UIViewControllerRepresentable {
@@ -63,8 +68,9 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
             parent.playerStats = playerStats
         }
         
+        // not using
         func showSummary(stats: PlayerStats) {
-            parent.playerStats = stats
+//            parent.playerStats = stats
             // TODO: Fix
 //            parent.gameEnded = true
         }
@@ -594,11 +600,12 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             #warning("maxShots can be changed to user's choice")
             #warning("yada yox, live camera da stop buttona basilanda game manageri swiftui viewda showsummary state e soxmaq olar ele, ve gostermek")
             #warning("ve video bitende")
-            if self.playerStats.shotCount == GameConstants.maxShots {
-                self.gameManager.stateMachine.enter(GameManager.ShowSummaryState.self)
-            } else {
+//            if self.playerStats.shotCount == GameConstants.maxShots {
+//                print("playerStats", playerStats.shotPaths.first)
+//                self.gameManager.stateMachine.enter(GameManager.ShowSummaryState.self)
+//            } else {
                 self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
-            }
+//            }
 //            }
         case is GameManager.ShowSummaryState:
             delegate?.showSummary(stats: playerStats)

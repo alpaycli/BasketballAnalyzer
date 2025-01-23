@@ -55,7 +55,7 @@ struct ShotMetrics: Equatable {
 }
 
 
-struct PlayerStats {
+struct PlayerStats: Equatable {
     private(set) var totalScore = 0
     private(set) var shotCount = 0
     var topSpeed: Double {

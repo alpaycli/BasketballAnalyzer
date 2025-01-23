@@ -12,6 +12,9 @@ import SwiftUI
 
 struct MainView: View {
     
+    @State private var shotPaths: [CGPath] = []
+    
+    var pub = NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
     @State private var boardRect: CGPath?
     
     // MARK: -
@@ -45,6 +48,7 @@ struct MainView: View {
     
     // MARK: - Summary
 
+    // bu deyqe lazimsizdi
     @State private var showShotResultLabel = false
     
     var body: some View {
@@ -69,6 +73,9 @@ struct MainView: View {
             }
             .navigationDestination(isPresented: $isLiveCameraSelected) {
                 contentViewWithLiveCamera
+            }
+            .onReceive(pub) { _ in
+                shotPaths = playerStats?.shotPaths ?? []
             }
             .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
                 switch result {
@@ -158,6 +165,8 @@ extension MainView {
         Button("Close", systemImage: "xmark") {
             recordedVideoSource = nil
             isLiveCameraSelected = false
+            
+            shotPaths = []
         }
         .padding()
         .labelStyle(.iconOnly)
@@ -206,7 +215,6 @@ extension MainView {
                 if let lastShotMetrics {
                     VStack(alignment: .leading) {
                         Text("Release Angel: ")
-//                            .zIndex(999)
                             .foregroundStyle(.white)
                         +
                         Text(lastShotMetrics.releaseAngle.formatted())
@@ -214,7 +222,6 @@ extension MainView {
                             .foregroundStyle(.orange)
                         
                         Text("Ball Speed: ")
-//                            .zIndex(999)
                             .foregroundStyle(.white)
                         +
                         Text(lastShotMetrics.speed.formatted() + " MPH")
@@ -243,27 +250,27 @@ extension MainView {
                 }
             }
             .overlay {
-                VStack(alignment: .leading) {
-                    Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
-                    Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
-                    Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
+                if !setupStateModel.isAllDone {
+                    VStack(alignment: .leading) {
+                        Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
+                        Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
+                        Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
+                    }
+                    .fontDesign(.monospaced)
+                    .foregroundStyle(.black)
+                    .padding()
+                    //                .frame(width: 200, height: 100)
+                    .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
                 }
-                .fontDesign(.monospaced)
-                .foregroundStyle(.black)
-                .padding()
-//                .frame(width: 200, height: 100)
-                .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
             }
-//            .overlay(alignment: .topTrailing) {
-//                VStack(alignment: .trailing) {
-//                    Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
-//                    Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
-//                    Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
-//                }
-//                .fontDesign(.monospaced)
-//                .foregroundStyle(.black)
-//                .padding()
-//            }
+            .overlay {
+                if !shotPaths.isEmpty {
+                    ForEach(shotPaths, id: \.self) { shotPath in
+                        Path(shotPath)
+                            .stroke(.red, lineWidth: 3)
+                    }
+                }
+            }
             .toolbarVisibility(.hidden, for: .navigationBar)
     }
     
@@ -312,27 +319,29 @@ extension MainView {
                 }
             }
             .overlay {
-                VStack(alignment: .leading) {
-                    Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
-                    Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
-                    Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
+                if !setupStateModel.isAllDone {
+                    VStack(alignment: .leading) {
+                        Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
+                        Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
+                        Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
+                    }
+                    .fontDesign(.monospaced)
+                    .foregroundStyle(.black)
+                    .padding()
+                    //                .frame(width: 200, height: 100)
+                    .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
                 }
-                .fontDesign(.monospaced)
-                .foregroundStyle(.black)
-                .padding()
-//                .frame(width: 200, height: 100)
-                .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
             }
-//            .overlay(alignment: .topTrailing) {
-//                VStack(alignment: .trailing) {
-//                    Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
-//                    Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
-//                    Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
-//                }
-//                .fontDesign(.monospaced)
-//                .foregroundStyle(.black)
-//                .padding()
-//            }
+            .overlay {
+                if !shotPaths.isEmpty {
+                    ForEach(shotPaths, id: \.self) { shotPath in
+                        let _ = print("currentpo", shotPath.currentPoint)
+                        Path(shotPath)
+                            .stroke(.red, lineWidth: 3)
+                            .zIndex(9999)
+                    }
+                }
+            }
             .toolbarVisibility(.hidden, for: .navigationBar)
         
     }
