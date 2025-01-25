@@ -12,7 +12,7 @@ import SwiftUI
 
 struct MainView: View {
     
-    @State private var showManualHoopSelector = false
+    @State private var manualHoopSelectorState: AreaSelectorState = .none
     
     @State private var shotPaths: [CGPath] = []
     
@@ -210,7 +210,7 @@ extension MainView {
 
 extension MainView {
     private func contentViewWithRecordedVideo(_ item: AVAsset) -> some View {
-        ContentAnalysisView(recordedVideoSource: item, showManualHoopSelector: $showManualHoopSelector, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
+        ContentAnalysisView(recordedVideoSource: item, manualHoopSelectorState: $manualHoopSelectorState, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .bottomLeading) {
@@ -277,7 +277,7 @@ extension MainView {
     }
     
     private var contentViewWithLiveCamera: some View {
-        ContentAnalysisView(recordedVideoSource: nil, showManualHoopSelector: $showManualHoopSelector, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
+        ContentAnalysisView(recordedVideoSource: nil, manualHoopSelectorState: $manualHoopSelectorState, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .bottomLeading) {
@@ -312,7 +312,7 @@ extension MainView {
                 LongPressButton(duration: 0.4)
             }
             .overlay(alignment: .top) {
-                if let setupGuideLabel {
+                if let setupGuideLabel, showSetupStateLabels {
                     Text(setupGuideLabel)
                         .font(.largeTitle)
                         .padding()
@@ -336,7 +336,6 @@ extension MainView {
             .overlay {
                 if !shotPaths.isEmpty {
                     ForEach(shotPaths, id: \.self) { shotPath in
-                        let _ = print("currentpo", shotPath.currentPoint)
                         Path(shotPath)
                             .stroke(.red, lineWidth: 3)
                             .zIndex(9999)
@@ -345,13 +344,28 @@ extension MainView {
             }
             .overlay(alignment: .topTrailing) {
                 if !setupStateModel.hoopDetected {
-                    Button(showManualHoopSelector ? "Done" : "Set Hoop Manually") {
-                        showManualHoopSelector.toggle()
+                    HStack {
+                        if manualHoopSelectorState == .inProgress {
+                            Button("Cancel") {
+                                manualHoopSelectorState = .none
+                            }
+                            .buttonStyle(.borderless)
+                            .tint(.green)
+                            .font(.headline.smallCaps())
+                            .padding()
+                        }
+                        Button(manualHoopSelectorState == .inProgress ? "Done" : "Set Hoop Manually") {
+                            if manualHoopSelectorState == .inProgress {
+                                manualHoopSelectorState = .done
+                            } else {
+                                manualHoopSelectorState = .inProgress
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.green)
+                        .font(.headline.smallCaps())
+                        .padding()
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.green)
-                    .font(.headline.smallCaps())
-                    .padding()
                 }
             }
             .toolbarVisibility(.hidden, for: .navigationBar)
@@ -359,7 +373,7 @@ extension MainView {
     }
     
     var showSetupStateLabels: Bool {
-        guard !showManualHoopSelector else { return false }
+        guard manualHoopSelectorState == .none else { return false }
         
         return !setupStateModel.isAllDone
     }

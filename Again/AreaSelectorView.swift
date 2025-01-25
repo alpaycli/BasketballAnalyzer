@@ -7,6 +7,12 @@
 
 import UIKit
 
+enum AreaSelectorState {
+    case none
+    case inProgress
+    case done
+}
+
 class AreaSelectorView: UIView {
     private var cornerPoints: [UIView] = []
     private let selectionLayer = CAShapeLayer()

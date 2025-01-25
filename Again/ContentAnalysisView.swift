@@ -22,10 +22,8 @@ struct SetupStateModel {
 }
 
 struct ContentAnalysisView: UIViewControllerRepresentable {
-    @State private var shouldUpdateView: Bool = true
-    
     let recordedVideoSource: AVAsset?
-    @Binding var showManualHoopSelector: Bool
+    @Binding var manualHoopSelectorState: AreaSelectorState
     @Binding var lastShotMetrics: ShotMetrics?
     @Binding var playerStats: PlayerStats?
     @Binding var setupGuideLabel: String?
@@ -49,10 +47,16 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
 //            uiViewController.delegate = context.coordinator
 //        }
         
-        if showManualHoopSelector {
-            uiViewController.showManualHoopSelectorView()
-        } else if !uiViewController.manualHoopAreaSelectorView.isHidden && !showManualHoopSelector {
+        switch manualHoopSelectorState {
+        case .none:
+            uiViewController.manualHoopAreaSelectorView.isHidden = true
+        case .inProgress:
+            uiViewController.manualHoopAreaSelectorView.isHidden = false
+        case .done:
             uiViewController.setHoopRegion()
+            DispatchQueue.main.async {
+                manualHoopSelectorState = .none
+            }
         }
     }
     
