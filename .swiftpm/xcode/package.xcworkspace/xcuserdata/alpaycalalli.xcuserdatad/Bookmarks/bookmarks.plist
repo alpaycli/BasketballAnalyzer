@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>323</string>
+					<string>468</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>322</string>
+					<string>467</string>
 					<key>Timestamp</key>
-					<string>759331800.925837</string>
+					<string>759519843.09233</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -34,63 +34,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>        // Show board placement guide only when using camera feed.
+				<string>                    
 </string>
 				<key>leading</key>
-				<string>            }
-        }
+				<string>//                        delegate.showLastShowMetrics(metrics: nil)
+                    }
 </string>
 				<key>trailing</key>
-				<string>//        if gameManager.recordedVideoSource == nil {
-//            let guideVisionRect = CGRect(x: 0.7, y: 0.3, width: 0.28, height: 0.3)
-//            let guideRect = controller.viewRectForVisionRect(guideVisionRect)
-</string>
-			</dict>
-			<key>title</key>
-			<string>show board placement guide</string>
-			<key>type</key>
-			<string>bookmark</string>
-		</dict>
-		<dict>
-			<key>destination</key>
-			<dict>
-				<key>location-parameters</key>
-				<dict>
-					<key>EndingColumnNumber</key>
-					<string>0</string>
-					<key>EndingLineNumber</key>
-					<string>436</string>
-					<key>StartingColumnNumber</key>
-					<string>0</string>
-					<key>StartingLineNumber</key>
-					<string>435</string>
-					<key>Timestamp</key>
-					<string>759331800.925916</string>
-				</dict>
-				<key>rebasable-url</key>
-				<dict>
-					<key>base</key>
-					<string>workspace</string>
-					<key>payload</key>
-					<dict>
-						<key>relative-path</key>
-						<string>Again/ContentAnalysisView.swift</string>
-					</dict>
-				</dict>
-			</dict>
-			<key>text-context</key>
-			<dict>
-				<key>focused</key>
-				<string>                    // Hide the previous shot metrics once a new shot is detected.
-</string>
-				<key>leading</key>
-				<string>//                    self.updateTrajectoryRegions()
-                    
-</string>
-				<key>trailing</key>
-				<string>                    if showShotMetrics {
-                        showShotMetrics = false
-//                        delegate.showLastShowMetrics(metrics: nil)
+				<string>                    // Hide the previous throw metrics once a new throw is detected.
+//                    if !self.dashboardView.isHidden {
+//                        self.resetKPILabels()
 </string>
 			</dict>
 			<key>title</key>
@@ -106,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>85</string>
+					<string>96</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>84</string>
+					<string>95</string>
 					<key>Timestamp</key>
-					<string>759323935.896807</string>
+					<string>759519893.001317</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -128,16 +81,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>                    print("failure", error.localizedDescription)
+				<string>        }
 </string>
 				<key>leading</key>
-				<string>                    handleImportedVideoFileURL(url)
-                case let .failure(error):
+				<string>//                }
+//            }
 </string>
 				<key>trailing</key>
-				<string>                }
-            })
-//            .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
+				<string>    }
+}
+
 </string>
 			</dict>
 			<key>title</key>
@@ -153,13 +106,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>134</string>
+					<string>149</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>133</string>
+					<string>148</string>
 					<key>Timestamp</key>
-					<string>759331800.925929</string>
+					<string>759489033.6391</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>

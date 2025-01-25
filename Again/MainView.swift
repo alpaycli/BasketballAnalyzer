@@ -12,6 +12,8 @@ import SwiftUI
 
 struct MainView: View {
     
+    @State private var showManualHoopSelector = false
+    
     @State private var shotPaths: [CGPath] = []
     
     var pub = NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
@@ -208,7 +210,7 @@ extension MainView {
 
 extension MainView {
     private func contentViewWithRecordedVideo(_ item: AVAsset) -> some View {
-        ContentAnalysisView(recordedVideoSource: item, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
+        ContentAnalysisView(recordedVideoSource: item, showManualHoopSelector: $showManualHoopSelector, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .bottomLeading) {
@@ -275,7 +277,7 @@ extension MainView {
     }
     
     private var contentViewWithLiveCamera: some View {
-        ContentAnalysisView(recordedVideoSource: nil, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
+        ContentAnalysisView(recordedVideoSource: nil, showManualHoopSelector: $showManualHoopSelector, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .bottomLeading) {
@@ -319,7 +321,7 @@ extension MainView {
                 }
             }
             .overlay {
-                if !setupStateModel.isAllDone {
+                if showSetupStateLabels {
                     VStack(alignment: .leading) {
                         Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
                         Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
@@ -328,7 +330,6 @@ extension MainView {
                     .fontDesign(.monospaced)
                     .foregroundStyle(.black)
                     .padding()
-                    //                .frame(width: 200, height: 100)
                     .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
                 }
             }
@@ -342,8 +343,25 @@ extension MainView {
                     }
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                if !setupStateModel.hoopDetected {
+                    Button(showManualHoopSelector ? "Done" : "Set Hoop Manually") {
+                        showManualHoopSelector.toggle()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.green)
+                    .font(.headline.smallCaps())
+                    .padding()
+                }
+            }
             .toolbarVisibility(.hidden, for: .navigationBar)
         
+    }
+    
+    var showSetupStateLabels: Bool {
+        guard !showManualHoopSelector else { return false }
+        
+        return !setupStateModel.isAllDone
     }
 }
 
@@ -361,3 +379,106 @@ extension MainView {
     LongPressButton(duration: 0.4)
 //        .frame(width: 120, height: 50)
 }
+
+/*
+ .overlay(alignment: .topTrailing) {
+     Button("Set") {
+         manualSelectedHoopRect = Path { path in
+             path.addLines(
+                 [
+                     CGPoint(
+                         x: hoopTopLeftPosition.x,
+                         y: hoopTopLeftPosition.y
+                     ),
+                     CGPoint(
+                         x: hoopTopRightPosition.x,
+                         y: hoopTopRightPosition.y
+                     ),
+                     CGPoint(
+                         x: hoopBottomRightPosition.x,
+                         y: hoopBottomRightPosition.y
+                     ),
+                     CGPoint(
+                         x: hoopBottomLeftPosition.x,
+                         y: hoopBottomLeftPosition.y
+                     ),
+                     CGPoint(
+                         x: hoopTopLeftPosition.x,
+                         y: hoopTopLeftPosition.y
+                     )
+                 ]
+             )
+         }
+         .boundingRect
+     }
+     .buttonStyle(.borderedProminent)
+     .tint(.green)
+     .font(.headline.smallCaps())
+     .padding()
+ }
+ .overlay {
+     Path { path in
+         path.addLines([
+             hoopTopLeftPosition,
+             hoopTopRightPosition,
+             hoopBottomRightPosition,
+             hoopBottomLeftPosition,
+             hoopTopLeftPosition
+         ])
+     }
+     .stroke(.purple, lineWidth: 3)
+ }
+ .overlay {
+     Circle()
+           .fill(Color.blue)
+           .frame(width: 20, height: 20)
+           .position(hoopTopLeftPosition)
+           .gesture(
+             DragGesture(minimumDistance: 0, coordinateSpace: .local)
+               .onChanged { gesture in
+                   hoopTopLeftPosition = gesture.location
+                   hoopBottomLeftPosition.x = gesture.location.x
+                   hoopTopRightPosition.y = gesture.location.y
+               }
+           )
+     
+     Circle()
+           .fill(Color.blue)
+           .frame(width: 20, height: 20)
+           .position(hoopTopRightPosition)
+           .gesture(
+             DragGesture(minimumDistance: 0, coordinateSpace: .local)
+               .onChanged { gesture in
+                   hoopTopRightPosition = gesture.location
+                   hoopBottomRightPosition.x = gesture.location.x
+                   hoopTopLeftPosition.y = gesture.location.y
+               }
+           )
+     
+     Circle()
+           .fill(Color.blue)
+           .frame(width: 20, height: 20)
+           .position(hoopBottomLeftPosition)
+           .gesture(
+             DragGesture(minimumDistance: 0, coordinateSpace: .local)
+               .onChanged { gesture in
+                   hoopBottomLeftPosition = gesture.location
+                   hoopTopLeftPosition.x = gesture.location.x
+                   hoopBottomRightPosition.y = gesture.location.y
+               }
+           )
+     
+     Circle()
+           .fill(Color.blue)
+           .frame(width: 20, height: 20)
+           .position(hoopBottomRightPosition)
+           .gesture(
+             DragGesture(minimumDistance: 0, coordinateSpace: .local)
+               .onChanged { gesture in
+                   hoopBottomRightPosition = gesture.location
+                   hoopBottomLeftPosition.y = gesture.location.y
+                   hoopTopRightPosition.x = gesture.location.x
+               }
+           )
+ }
+ */

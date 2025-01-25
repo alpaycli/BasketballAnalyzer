@@ -17,12 +17,15 @@ struct SetupStateModel {
     
     /// Returns true if all setup steps are completed.
     var isAllDone: Bool {
-        hoopDetected && hoopContoursDetected && playerDetected
+        hoopDetected/* && hoopContoursDetected*/ && playerDetected
     }
 }
 
 struct ContentAnalysisView: UIViewControllerRepresentable {
+    @State private var shouldUpdateView: Bool = true
+    
     let recordedVideoSource: AVAsset?
+    @Binding var showManualHoopSelector: Bool
     @Binding var lastShotMetrics: ShotMetrics?
     @Binding var playerStats: PlayerStats?
     @Binding var setupGuideLabel: String?
@@ -41,8 +44,15 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: ContentAnalysisViewController, context: Context) {
-        if uiViewController.delegate == nil {
-            uiViewController.delegate = context.coordinator
+        print("updateUIViewController updated")
+//        if uiViewController.delegate == nil {
+//            uiViewController.delegate = context.coordinator
+//        }
+        
+        if showManualHoopSelector {
+            uiViewController.showManualHoopSelectorView()
+        } else if !uiViewController.manualHoopAreaSelectorView.isHidden && !showManualHoopSelector {
+            uiViewController.setHoopRegion()
         }
     }
     
@@ -76,11 +86,15 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
         }
         
         func showSetupGuide(_ text: String?) {
-            parent.setupGuideLabel = text
+            DispatchQueue.main.async {
+                self.parent.setupGuideLabel = text
+            }
         }
         
         func updateSetupState(_ model: SetupStateModel) {
-            parent.setupStateModel = model
+            DispatchQueue.main.async {
+                self.parent.setupStateModel = model
+            }
         }
     }
 }
@@ -107,6 +121,7 @@ class ContentAnalysisViewController: UIViewController {
     private let playerBoundingBox = BoundingBoxView()
     private let jointSegmentView = JointSegmentView()
     
+    var manualHoopAreaSelectorView: AreaSelectorView!
     private var hoopRegion: CGRect = .zero
     
     private var trajectoryInFlightPoseObservations = 0
@@ -177,11 +192,24 @@ class ContentAnalysisViewController: UIViewController {
         self.cameraViewController.outputDelegate = cameraVCDelegate
     }
     
+    func setHoopRegion() {
+        let selectedArea = manualHoopAreaSelectorView.getSelectedArea()
+        self.hoopRegion = selectedArea
+        updateBoundingBox(boardBoundingBox, withRect: selectedArea)
+        manualHoopAreaSelectorView.isHidden = false
+        
+        gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
+    }
+    
+    func showManualHoopSelectorView() {
+        manualHoopAreaSelectorView.isHidden = false
+    }
+    
     // MARK: - Private Methods
     
     private func updateBoundingBox(_ boundingBox: BoundingBoxView, withRect rect: CGRect?) {
         // Update the frame for player bounding box
-        boundingBox.frame = rect ?? .zero
+        boundingBox.frame = rect!
         boundingBox.performTransition((rect == nil ? .fadeOut : .fadeIn), duration: 0.1)
     }
     
@@ -228,12 +256,16 @@ class ContentAnalysisViewController: UIViewController {
     }
     
     private func setUIElements() {
+        manualHoopAreaSelectorView = .init(frame: view.bounds)
+        manualHoopAreaSelectorView.isHidden = true
+        
         playerBoundingBox.borderColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 1)
         playerBoundingBox.backgroundOpacity = 0
         playerBoundingBox.isHidden = true
         view.addSubview(playerBoundingBox)
         view.addSubview(jointSegmentView)
         view.addSubview(trajectoryView)
+        view.addSubview(manualHoopAreaSelectorView)
 //        gameStatusLabel.text = "Waiting for player"
         // Set throw type counters
 //        underhandThrowView.throwType = .underhand
@@ -256,6 +288,7 @@ class ContentAnalysisViewController: UIViewController {
         view.bringSubviewToFront(playerBoundingBox)
         view.bringSubviewToFront(jointSegmentView)
         view.bringSubviewToFront(trajectoryView)
+        view.bringSubviewToFront(manualHoopAreaSelectorView)
         
         do {
             if recordedVideoSource != nil {
@@ -320,12 +353,6 @@ extension ContentAnalysisViewController {
                 rect = controller.viewRectForVisionRect(visionRect)
             }
         }
-        // Show board placement guide only when using camera feed.
-//        if gameManager.recordedVideoSource == nil {
-//            let guideVisionRect = CGRect(x: 0.7, y: 0.3, width: 0.28, height: 0.3)
-//            let guideRect = controller.viewRectForVisionRect(guideVisionRect)
-//            updateBoundingBox(boardLocationGuide, withViewRect: guideRect, visionRect: guideVisionRect)
-//        }
         updateBoundingBox(boardBoundingBox, withViewRect: rect, visionRect: visionRect)
         // If rect is nil we need to keep looking for the board, otherwise check the board placement
 //        self.setupStage = (rect == nil) ? .detectingBoard : .detectingBoardPlacement
