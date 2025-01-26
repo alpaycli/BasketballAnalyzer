@@ -44,7 +44,7 @@ class CameraViewController: UIViewController {
 
     // Live camera feed management
     private var cameraFeedView: CameraFeedView!
-    var cameraFeedSession: AVCaptureSession?
+    private var cameraFeedSession: AVCaptureSession?
 
     // Video file playback management
     private var videoRenderView: VideoRenderView!
@@ -65,6 +65,13 @@ class CameraViewController: UIViewController {
         cameraFeedSession?.stopRunning()
         // Invalidate display link so it's removed from run loop
         displayLink?.invalidate()
+    }
+    
+    /// Stops camera session if there's any
+    /// 
+    /// Used when 'finish' button pressed in live camera session
+    func stopCameraSession() {
+        cameraFeedSession?.stopRunning()
     }
     
     func setupAVSession() throws {

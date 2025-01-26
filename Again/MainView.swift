@@ -18,6 +18,7 @@ class ContentViewModel {
     var playerStats: PlayerStats? = nil
     var setupGuideLabel: String? = nil
     var setupStateModel = SetupStateModel()
+    var isFinishButtonPressed = false
     
     func reset() {
         manualHoopSelectorState = .none
@@ -25,6 +26,7 @@ class ContentViewModel {
         playerStats = nil
         setupGuideLabel = nil
         setupStateModel = .init()
+        isFinishButtonPressed = false
     }
 }
 
@@ -253,6 +255,26 @@ extension ContentView {
         ContentAnalysisView(recordedVideoSource: item, viewModel: viewModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
+            .overlay(alignment: .top) {
+                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
+                    Text(setupGuideLabel)
+                        .font(.largeTitle)
+                        .padding()
+                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
+                        .foregroundStyle(.black)
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                closeButton
+            }
+            .overlay(alignment: .topTrailing) {
+                if !viewModel.setupStateModel.hoopDetected {
+                    manualHoopSelectionButtons
+                }
+            }
+            .overlay(alignment: .bottom) {
+                makeAndAttemptsView
+            }
             .overlay(alignment: .bottomLeading) {
                 if let lastShotMetrics = viewModel.lastShotMetrics {
                     VStack(alignment: .leading) {
@@ -273,26 +295,8 @@ extension ContentView {
                     .padding()
                 }
             }
-            .overlay(alignment: .topLeading) {
-                closeButton
-            }
-            .overlay(alignment: .bottom) {
-                makeAndAttemptsView
-            }
-            .overlay(alignment: .bottomTrailing) {
-                LongPressButton(duration: 0.4)
-            }
-            .overlay(alignment: .top) {
-                if let setupGuideLabel = viewModel.setupGuideLabel {
-                    Text(setupGuideLabel)
-                        .font(.largeTitle)
-                        .padding()
-                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
-                        .foregroundStyle(.black)
-                }
-            }
             .overlay {
-                if !viewModel.setupStateModel.isAllDone {
+                if showSetupStateLabels {
                     setupStatesView
                 }
             }
@@ -308,6 +312,26 @@ extension ContentView {
         ContentAnalysisView(recordedVideoSource: nil, viewModel: viewModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
+            .overlay(alignment: .top) {
+                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
+                    Text(setupGuideLabel)
+                        .font(.largeTitle)
+                        .padding()
+                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
+                        .foregroundStyle(.black)
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                closeButton
+            }
+            .overlay(alignment: .topTrailing) {
+                if !viewModel.setupStateModel.hoopDetected {
+                    manualHoopSelectionButtons
+                }
+            }
+            .overlay(alignment: .bottom) {
+                makeAndAttemptsView
+            }
             .overlay(alignment: .bottomLeading) {
                 if let lastShotMetrics = viewModel.lastShotMetrics {
                     VStack(alignment: .leading) {
@@ -330,22 +354,12 @@ extension ContentView {
                     .padding()
                 }
             }
-            .overlay(alignment: .topLeading) {
-                closeButton
-            }
-            .overlay(alignment: .bottom) {
-                makeAndAttemptsView
-            }
             .overlay(alignment: .bottomTrailing) {
-                LongPressButton(duration: 0.4)
-            }
-            .overlay(alignment: .top) {
-                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
-                    Text(setupGuideLabel)
-                        .font(.largeTitle)
-                        .padding()
-                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
-                        .foregroundStyle(.black)
+                // finish game button
+                if !viewModel.isFinishButtonPressed {
+                    LongPressButton(duration: 0.4) {
+                        viewModel.isFinishButtonPressed = true
+                    }
                 }
             }
             .overlay {
@@ -356,11 +370,6 @@ extension ContentView {
             .overlay {
                 if !shotPaths.isEmpty {
                     shotPathsView
-                }
-            }
-            .overlay(alignment: .topTrailing) {
-                if !viewModel.setupStateModel.hoopDetected {
-                    manualHoopSelectionButtons
                 }
             }
             .toolbarVisibility(.hidden, for: .navigationBar)
@@ -379,7 +388,7 @@ extension ContentView {
     .fontWeight(.bold)
     .font(.headline.smallCaps())
     
-    LongPressButton(duration: 0.4)
+    LongPressButton(duration: 0.4) {}
 //        .frame(width: 120, height: 50)
 }
 

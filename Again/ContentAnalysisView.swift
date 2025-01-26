@@ -54,6 +54,10 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
                 viewModel.manualHoopSelectorState = .none
             }
         }
+        
+        if viewModel.isFinishButtonPressed {
+            uiViewController.finishGame()
+        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -203,6 +207,10 @@ class ContentAnalysisViewController: UIViewController {
     
     func showManualHoopSelectorView() {
         manualHoopAreaSelectorView.isHidden = false
+    }
+    
+    func finishGame() {
+        gameManager.stateMachine.enter(GameManager.ShowSummaryState.self)
     }
     
     // MARK: - Private Methods
@@ -637,7 +645,8 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
 //            }
 //            }
         case is GameManager.ShowSummaryState:
-            delegate?.showSummary(stats: playerStats)
+            cameraViewController.stopCameraSession()
+//            delegate?.showSummary(stats: playerStats)
         default:
             break
         }

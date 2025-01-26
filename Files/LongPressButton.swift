@@ -18,6 +18,8 @@ struct LongPressButton: View {
     @State private var timerCount: CGFloat = 0
     
     @State private var showText = false
+    
+    let action: () -> ()
 
   var body: some View {
       VStack(spacing: 0) {
@@ -53,7 +55,7 @@ struct LongPressButton: View {
                   cancelTimer()
                   withAnimation(.easeInOut(duration: 0.2)) {
                       isDone = true
-                      print("action")
+                      action()
                   }
               }, onPressingChanged: { status in
                   if status {
