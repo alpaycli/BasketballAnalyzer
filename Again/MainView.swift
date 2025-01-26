@@ -5,48 +5,52 @@
 //  Created by Alpay Calalli on 16.12.24.
 //
 
+import Observation
 import PhotosUI
 import AVFoundation
 import Vision
 import SwiftUI
 
-struct MainView: View {
+@Observable
+class ContentViewModel {
+    var manualHoopSelectorState: AreaSelectorState = .none
+    var lastShotMetrics: ShotMetrics? = nil
+    var playerStats: PlayerStats? = nil
+    var setupGuideLabel: String? = nil
+    var setupStateModel = SetupStateModel()
     
-    @State private var manualHoopSelectorState: AreaSelectorState = .none
+    func reset() {
+        manualHoopSelectorState = .none
+        lastShotMetrics = nil
+        playerStats = nil
+        setupGuideLabel = nil
+        setupStateModel = .init()
+    }
+}
+
+struct ContentView: View {
     
-    @State private var shotPaths: [CGPath] = []
+    // MARK: - ViewModel
     
-    var pub = NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
-    @State private var boardRect: CGPath?
+    @State private var viewModel = ContentViewModel()
     
     // MARK: -
     
-    @State var setupGuideLabel: String?
-    @State var setupStateModel = SetupStateModel()
+    @State private var shotPaths: [CGPath] = []
     
     @State private var recordedVideoSource: AVAsset?
     @State private var isLiveCameraSelected = false
     
     @State private var showFileImporter = false
     @State private var photo: PhotosPickerItem?
-    
-    // MARK: - Metrics and Stats
-    
-    @State private var lastShotMetrics: ShotMetrics? = nil
-    @State private var playerStats: PlayerStats? = nil
-    
-    var lastShotMetricsBinding: Binding<ShotMetrics?> {
-        .init {
-            lastShotMetrics
-        } set: { newValue in
-            print("bura lastshotmetrics", "salam")
-            lastShotMetrics = newValue
-            showShotResultLabel = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                showShotResultLabel = false
-            }
-        }
+        
+    var showSetupStateLabels: Bool {
+        guard viewModel.manualHoopSelectorState == .none else { return false }
+        
+        return !viewModel.setupStateModel.isAllDone
     }
+    
+    var pub = NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
     
     // MARK: - Summary
 
@@ -62,11 +66,6 @@ struct MainView: View {
                     GameManager.shared.reset()
                     GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
                     
-                    // to not see previous videos last shot metrics on the initial
-                    lastShotMetrics = nil
-                    playerStats = nil
-                    setupGuideLabel = nil
-                    
                     isLiveCameraSelected = true
                 }
             }
@@ -77,7 +76,7 @@ struct MainView: View {
                 contentViewWithLiveCamera
             }
             .onReceive(pub) { _ in
-                shotPaths = playerStats?.shotPaths ?? []
+                shotPaths = viewModel.playerStats?.shotPaths ?? []
             }
             .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
                 switch result {
@@ -99,7 +98,7 @@ struct MainView: View {
 
 // MARK: - Methods
 
-extension MainView {
+extension ContentView {
     private func handlePhotoPickerSelection(_ item: PhotosPickerItem) {
         item.getURL(completionHandler: { result in
             switch result {
@@ -149,11 +148,6 @@ extension MainView {
                 GameManager.shared.reset()
                 GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
                 
-                // to not see previous videos last shot metrics on the initial
-                lastShotMetrics = nil
-                playerStats = nil
-                setupGuideLabel = nil
-                
                 recordedVideoSource = AVURLAsset(url: selectedFileURL)
             }
         }
@@ -162,13 +156,14 @@ extension MainView {
 
 // MARK: - UI components
 
-extension MainView {
+extension ContentView {
     private var closeButton: some View {
         Button("Close", systemImage: "xmark") {
             recordedVideoSource = nil
             isLiveCameraSelected = false
             
             shotPaths = []
+            viewModel.reset()
         }
         .padding()
         .labelStyle(.iconOnly)
@@ -179,10 +174,10 @@ extension MainView {
     private var makeAndAttemptsView: some View {
         HStack {
             VStack {
-                Text(playerStats?.totalScore.formatted() ?? "0")
+                Text(viewModel.playerStats?.totalScore.formatted() ?? "0")
                     .font(.largeTitle)
                     .fontDesign(.monospaced)
-                    .animation(.default, value: playerStats?.totalScore)
+                    .animation(.default, value: viewModel.playerStats?.totalScore)
                     .contentTransition(.numericText())
                 Text("make")
                     .font(.headline.uppercaseSmallCaps())
@@ -192,10 +187,10 @@ extension MainView {
                 .font(.largeTitle)
                 .padding(.horizontal)
             VStack {
-                Text(playerStats?.shotCount.formatted() ?? "0")
+                Text(viewModel.playerStats?.shotCount.formatted() ?? "0")
                     .font(.largeTitle)
                     .fontDesign(.monospaced)
-                    .animation(.default, value: playerStats?.totalScore)
+                    .animation(.default, value: viewModel.playerStats?.totalScore)
                     .contentTransition(.numericText())
                 Text("attempt")
                     .font(.headline.uppercaseSmallCaps())
@@ -204,17 +199,62 @@ extension MainView {
         }
         .foregroundStyle(.white.gradient)
     }
+    
+    private var setupStatesView: some View {
+        VStack(alignment: .leading) {
+            Text("Hoop Detected: " + "\(viewModel.setupStateModel.hoopDetected ? "✅" : "❌")")
+            Text("Hoop Contours Detected: " + "\(viewModel.setupStateModel.hoopContoursDetected ? "✅" : "❌")")
+            Text("Player Detected: " + "\(viewModel.setupStateModel.playerDetected ? "✅" : "❌")")
+        }
+        .fontDesign(.monospaced)
+        .foregroundStyle(.black)
+        .padding()
+        //                .frame(width: 200, height: 100)
+        .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
+    }
+    
+    private var shotPathsView: some View {
+        ForEach(shotPaths, id: \.self) { shotPath in
+            Path(shotPath)
+                .stroke(.red, lineWidth: 3)
+        }
+    }
+    
+    private var manualHoopSelectionButtons: some View {
+        HStack {
+            if viewModel.manualHoopSelectorState == .inProgress {
+                Button("Cancel") {
+                    viewModel.manualHoopSelectorState = .none
+                }
+                .buttonStyle(.borderless)
+                .tint(.green)
+                .font(.headline.smallCaps())
+                .padding()
+            }
+            Button(viewModel.manualHoopSelectorState == .inProgress ? "Done" : "Set Hoop Manually") {
+                if viewModel.manualHoopSelectorState == .inProgress {
+                    viewModel.manualHoopSelectorState = .done
+                } else {
+                    viewModel.manualHoopSelectorState = .inProgress
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.green)
+            .font(.headline.smallCaps())
+            .padding()
+        }
+    }
 }
 
-// MARK: -
+// MARK: - Contents
 
-extension MainView {
+extension ContentView {
     private func contentViewWithRecordedVideo(_ item: AVAsset) -> some View {
-        ContentAnalysisView(recordedVideoSource: item, manualHoopSelectorState: $manualHoopSelectorState, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
+        ContentAnalysisView(recordedVideoSource: item, viewModel: viewModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .bottomLeading) {
-                if let lastShotMetrics {
+                if let lastShotMetrics = viewModel.lastShotMetrics {
                     VStack(alignment: .leading) {
                         Text("Release Angel: ")
                             .foregroundStyle(.white)
@@ -243,7 +283,7 @@ extension MainView {
                 LongPressButton(duration: 0.4)
             }
             .overlay(alignment: .top) {
-                if let setupGuideLabel {
+                if let setupGuideLabel = viewModel.setupGuideLabel {
                     Text(setupGuideLabel)
                         .font(.largeTitle)
                         .padding()
@@ -252,36 +292,24 @@ extension MainView {
                 }
             }
             .overlay {
-                if !setupStateModel.isAllDone {
-                    VStack(alignment: .leading) {
-                        Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
-                        Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
-                        Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
-                    }
-                    .fontDesign(.monospaced)
-                    .foregroundStyle(.black)
-                    .padding()
-                    //                .frame(width: 200, height: 100)
-                    .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
+                if !viewModel.setupStateModel.isAllDone {
+                    setupStatesView
                 }
             }
             .overlay {
                 if !shotPaths.isEmpty {
-                    ForEach(shotPaths, id: \.self) { shotPath in
-                        Path(shotPath)
-                            .stroke(.red, lineWidth: 3)
-                    }
+                    shotPathsView
                 }
             }
             .toolbarVisibility(.hidden, for: .navigationBar)
     }
     
     private var contentViewWithLiveCamera: some View {
-        ContentAnalysisView(recordedVideoSource: nil, manualHoopSelectorState: $manualHoopSelectorState, lastShotMetrics: lastShotMetricsBinding, playerStats: $playerStats, setupGuideLabel: $setupGuideLabel, setupStateModel: $setupStateModel)
+        ContentAnalysisView(recordedVideoSource: nil, viewModel: viewModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .bottomLeading) {
-                if let lastShotMetrics {
+                if let lastShotMetrics = viewModel.lastShotMetrics {
                     VStack(alignment: .leading) {
                         Text("Release Angel: ")
 //                            .zIndex(999)
@@ -312,7 +340,7 @@ extension MainView {
                 LongPressButton(duration: 0.4)
             }
             .overlay(alignment: .top) {
-                if let setupGuideLabel, showSetupStateLabels {
+                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
                     Text(setupGuideLabel)
                         .font(.largeTitle)
                         .padding()
@@ -322,60 +350,21 @@ extension MainView {
             }
             .overlay {
                 if showSetupStateLabels {
-                    VStack(alignment: .leading) {
-                        Text("Hoop Detected: " + "\(setupStateModel.hoopDetected ? "✅" : "❌")")
-                        Text("Hoop Contours Detected: " + "\(setupStateModel.hoopContoursDetected ? "✅" : "❌")")
-                        Text("Player Detected: " + "\(setupStateModel.playerDetected ? "✅" : "❌")")
-                    }
-                    .fontDesign(.monospaced)
-                    .foregroundStyle(.black)
-                    .padding()
-                    .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
+                    setupStatesView
                 }
             }
             .overlay {
                 if !shotPaths.isEmpty {
-                    ForEach(shotPaths, id: \.self) { shotPath in
-                        Path(shotPath)
-                            .stroke(.red, lineWidth: 3)
-                            .zIndex(9999)
-                    }
+                    shotPathsView
                 }
             }
             .overlay(alignment: .topTrailing) {
-                if !setupStateModel.hoopDetected {
-                    HStack {
-                        if manualHoopSelectorState == .inProgress {
-                            Button("Cancel") {
-                                manualHoopSelectorState = .none
-                            }
-                            .buttonStyle(.borderless)
-                            .tint(.green)
-                            .font(.headline.smallCaps())
-                            .padding()
-                        }
-                        Button(manualHoopSelectorState == .inProgress ? "Done" : "Set Hoop Manually") {
-                            if manualHoopSelectorState == .inProgress {
-                                manualHoopSelectorState = .done
-                            } else {
-                                manualHoopSelectorState = .inProgress
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.green)
-                        .font(.headline.smallCaps())
-                        .padding()
-                    }
+                if !viewModel.setupStateModel.hoopDetected {
+                    manualHoopSelectionButtons
                 }
             }
             .toolbarVisibility(.hidden, for: .navigationBar)
         
-    }
-    
-    var showSetupStateLabels: Bool {
-        guard manualHoopSelectorState == .none else { return false }
-        
-        return !setupStateModel.isAllDone
     }
 }
 

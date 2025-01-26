@@ -23,11 +23,7 @@ struct SetupStateModel {
 
 struct ContentAnalysisView: UIViewControllerRepresentable {
     let recordedVideoSource: AVAsset?
-    @Binding var manualHoopSelectorState: AreaSelectorState
-    @Binding var lastShotMetrics: ShotMetrics?
-    @Binding var playerStats: PlayerStats?
-    @Binding var setupGuideLabel: String?
-    @Binding var setupStateModel: SetupStateModel
+    @Bindable var viewModel: ContentViewModel
     
     func makeUIViewController(context: Context) -> ContentAnalysisViewController {
         let vc = ContentAnalysisViewController()
@@ -47,7 +43,7 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
 //            uiViewController.delegate = context.coordinator
 //        }
         
-        switch manualHoopSelectorState {
+        switch viewModel.manualHoopSelectorState {
         case .none:
             uiViewController.manualHoopAreaSelectorView.isHidden = true
         case .inProgress:
@@ -55,7 +51,7 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
         case .done:
             uiViewController.setHoopRegion()
             DispatchQueue.main.async {
-                manualHoopSelectorState = .none
+                viewModel.manualHoopSelectorState = .none
             }
         }
     }
@@ -78,8 +74,8 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
         }
         
         func showLastShowMetrics(metrics: ShotMetrics, playerStats: PlayerStats) {
-            parent.lastShotMetrics = metrics
-            parent.playerStats = playerStats
+            parent.viewModel.lastShotMetrics = metrics
+            parent.viewModel.playerStats = playerStats
         }
         
         // not using
@@ -91,13 +87,13 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
         
         func showSetupGuide(_ text: String?) {
             DispatchQueue.main.async {
-                self.parent.setupGuideLabel = text
+                self.parent.viewModel.setupGuideLabel = text
             }
         }
         
         func updateSetupState(_ model: SetupStateModel) {
             DispatchQueue.main.async {
-                self.parent.setupStateModel = model
+                self.parent.viewModel.setupStateModel = model
             }
         }
     }
@@ -467,6 +463,8 @@ extension ContentAnalysisViewController {
                     // Hide the previous shot metrics once a new shot is detected.
                     if showShotMetrics {
                         showShotMetrics = false
+                        print("resetting path")
+                        trajectoryView.resetPath()
 //                        delegate.showLastShowMetrics(metrics: nil)
                     }
                     

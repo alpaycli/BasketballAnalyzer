@@ -44,7 +44,7 @@ class CameraViewController: UIViewController {
 
     // Live camera feed management
     private var cameraFeedView: CameraFeedView!
-    private var cameraFeedSession: AVCaptureSession?
+    var cameraFeedSession: AVCaptureSession?
 
     // Video file playback management
     private var videoRenderView: VideoRenderView!

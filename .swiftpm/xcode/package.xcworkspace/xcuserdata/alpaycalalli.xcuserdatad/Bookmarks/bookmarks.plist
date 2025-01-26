@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>472</string>
+					<string>467</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>471</string>
+					<string>466</string>
 					<key>Timestamp</key>
-					<string>759536583.401363</string>
+					<string>759578356.436564</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -34,20 +34,20 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>                    
+				<string>                        trajectoryView.resetPath()
 </string>
 				<key>leading</key>
-				<string>//                        delegate.showLastShowMetrics(metrics: nil)
-                    }
+				<string>                        showShotMetrics = false
+                        print("resetting path")
 </string>
 				<key>trailing</key>
-				<string>                    // Hide the previous throw metrics once a new throw is detected.
-//                    if !self.dashboardView.isHidden {
-//                        self.resetKPILabels()
+				<string>//                        delegate.showLastShowMetrics(metrics: nil)
+                    }
+                    
 </string>
 			</dict>
 			<key>title</key>
-			<string>bura girir ama lazim deyil deyesen</string>
+			<string>tam emin deyilem bundan, bug yaradar yoxsa yox</string>
 			<key>type</key>
 			<string>bookmark</string>
 		</dict>
@@ -59,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>96</string>
+					<string>95</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>95</string>
+					<string>94</string>
 					<key>Timestamp</key>
-					<string>759519893.001317</string>
+					<string>759577457.057297</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -106,13 +106,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>153</string>
+					<string>149</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>152</string>
+					<string>148</string>
 					<key>Timestamp</key>
-					<string>759536583.401407</string>
+					<string>759575969.075929</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
