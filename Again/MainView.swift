@@ -359,6 +359,7 @@ extension ContentView {
                 if !viewModel.isFinishButtonPressed {
                     LongPressButton(duration: 0.4) {
                         viewModel.isFinishButtonPressed = true
+                        shotPaths = viewModel.playerStats?.shotPaths ?? []
                     }
                 }
             }

@@ -202,6 +202,10 @@ class ContentAnalysisViewController: UIViewController {
         updateBoundingBox(boardBoundingBox, withRect: selectedArea)
         manualHoopAreaSelectorView.isHidden = false
         
+        if let recordedVideoSource {
+            cameraViewController.startReadingAsset(recordedVideoSource)
+        }
+        
         gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
     }
     
