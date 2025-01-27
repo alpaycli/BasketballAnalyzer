@@ -82,9 +82,10 @@ class TrajectoryView: UIView, AnimatedTransitioning {
         shadowLayer.path = fullTrajectory.cgPath
     }
 
-    func addPath(_ path: CGPath) {
+    func addPath(_ path: CGPath, color: UIColor) {
         fullTrajectory.cgPath = path
         pathLayer.lineWidth = 2
+        pathLayer.strokeColor = color.cgColor
         pathLayer.path = fullTrajectory.cgPath
         shadowLayer.lineWidth = 4
         shadowLayer.path = fullTrajectory.cgPath

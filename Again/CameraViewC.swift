@@ -47,7 +47,7 @@ class CameraViewController: UIViewController {
     private var cameraFeedSession: AVCaptureSession?
 
     // Video file playback management
-    private var videoRenderView: VideoRenderView!
+    var videoRenderView: VideoRenderView!
     private var playerItemOutput: AVPlayerItemVideoOutput?
     private var displayLink: CADisplayLink?
     private let videoFileReadingQueue = DispatchQueue(label: "VideoFileReading", qos: .userInteractive)
@@ -185,6 +185,10 @@ class CameraViewController: UIViewController {
             videoOutputView.topAnchor.constraint(equalTo: view.topAnchor),
             videoOutputView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+    }
+    
+    func stopVideoPlayer() {
+        videoRenderView.player = nil
     }
     
     func startReadingAsset(_ asset: AVAsset) {

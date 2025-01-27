@@ -177,6 +177,7 @@ class ContentAnalysisViewController: UIViewController {
         stopObservingStateChanges()
         setupStateModel = .init()
         delegate?.updateSetupState(setupStateModel)
+        NotificationCenter.default.removeObserver(self)
     }
     
     // MARK: - Init
@@ -203,14 +204,18 @@ class ContentAnalysisViewController: UIViewController {
         manualHoopAreaSelectorView.isHidden = false
         
         if let recordedVideoSource {
+            cameraViewController.stopVideoPlayer()
+            NotificationCenter.default.removeObserver(self)
             cameraViewController.startReadingAsset(recordedVideoSource)
+            NotificationCenter.default
+                .addObserver(self,
+                selector: #selector(playerDidFinishPlaying),
+                name: .AVPlayerItemDidPlayToEndTime,
+                object: cameraViewController.videoRenderView.player!.currentItem
+            )
         }
         
         gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
-    }
-    
-    func showManualHoopSelectorView() {
-        manualHoopAreaSelectorView.isHidden = false
     }
     
     func finishGame() {
@@ -218,6 +223,11 @@ class ContentAnalysisViewController: UIViewController {
     }
     
     // MARK: - Private Methods
+    
+    @objc private func playerDidFinishPlaying() {
+        print("video ended in viewcontroller")
+        gameManager.stateMachine.enter(GameManager.ShowSummaryState.self)
+    }
     
     private func updateBoundingBox(_ boundingBox: BoundingBoxView, withRect rect: CGRect?) {
         // Update the frame for player bounding box
@@ -306,6 +316,12 @@ class ContentAnalysisViewController: UIViewController {
             if recordedVideoSource != nil {
                 // Start reading the video.
                 cameraViewController.startReadingAsset(recordedVideoSource!)
+                NotificationCenter.default
+                    .addObserver(self,
+                    selector: #selector(playerDidFinishPlaying),
+                    name: .AVPlayerItemDidPlayToEndTime,
+                    object: cameraViewController.videoRenderView.player!.currentItem
+                )
             } else {
                 // Start live camera capture.
                 try cameraViewController.setupAVSession()
@@ -494,6 +510,18 @@ extension ContentAnalysisViewController {
             }
         }
     }
+     
+    private func showAllTrajectories() {
+        for (index, path) in playerStats.shotPaths.enumerated() {
+            let trajectoryView = TrajectoryView(frame: view.bounds)
+            trajectoryView.frame = cameraViewController.viewRectForVisionRect(.init(x: 0, y: 0, width: 1, height: 1))
+            view.addSubview(trajectoryView)
+            
+            let isShotWentIn = playerStats.shotResults[index] == .score
+            trajectoryView.addPath(path, color: isShotWentIn ? .green : .red)
+            view.bringSubviewToFront(trajectoryView)
+        }
+    }
 }
 
 // MARK: - Detect player stuff
@@ -554,6 +582,7 @@ extension ContentAnalysisViewController {
         playerStats.storeShotSpeed(speed)
         playerStats.storeReleaseAngle(releaseAngle)
         playerStats.adjustMetrics(isShotWentIn: shotResult == .score)
+        playerStats.storeShotResult(lastShotMetrics.shotResult)
         
         self.gameManager.stateMachine.enter(GameManager.ThrowCompletedState.self)
     }
@@ -649,8 +678,15 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
 //            }
 //            }
         case is GameManager.ShowSummaryState:
+            // stop camera session if there's any
             cameraViewController.stopCameraSession()
-//            delegate?.showSummary(stats: playerStats)
+            
+            if !trajectoryView.fullTrajectory.isEmpty {
+                throwCompletedAction(cameraViewController)
+            }
+            boardBoundingBox.isHidden = true
+            
+            showAllTrajectories()
         default:
             break
         }

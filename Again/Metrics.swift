@@ -73,7 +73,8 @@ struct PlayerStats: Equatable {
 //    var poseObservations = [VNHumanBodyPoseObservation]()
     private(set) var shotPaths: [CGPath] = []
     private(set) var allSpeeds: [Double] = []
-    var allReleaseAngles: [Double] = []
+    private(set) var allReleaseAngles: [Double] = []
+    private(set) var shotResults: [ShotResult] = []
     
 //    var allReleaseSpeeds: [Double] = [] // or durations
 //    var topReleaseSpeed = 0.0 // or duration
@@ -96,6 +97,10 @@ struct PlayerStats: Equatable {
     
     mutating func storeReleaseAngle(_ angle: Double) {
         allReleaseAngles.append(angle)
+    }
+    
+    mutating func storeShotResult(_ shotResult: ShotResult) {
+        shotResults.append(shotResult)
     }
     
     func getReleaseAngle(poseObservations: [VNHumanBodyPoseObservation]) -> Double {

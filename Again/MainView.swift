@@ -77,8 +77,9 @@ struct ContentView: View {
             .navigationDestination(isPresented: $isLiveCameraSelected) {
                 contentViewWithLiveCamera
             }
-            .onReceive(pub) { _ in
-                shotPaths = viewModel.playerStats?.shotPaths ?? []
+            .onReceive(pub) { c in
+                print("video ended in view", c.name.rawValue, c.name)
+//                shotPaths = viewModel.playerStats?.shotPaths ?? []
             }
             .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
                 switch result {
