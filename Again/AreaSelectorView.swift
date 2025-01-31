@@ -19,6 +19,9 @@ class AreaSelectorView: UIView {
     private let pointSize: CGFloat = 20
     private let pointColor = UIColor.blue
     
+    var moveIconView = UIImageView(image: .init(systemName: "arrow.up.and.down.and.arrow.left.and.right"))
+    private let handleSize: CGFloat = 30
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupAreaSelector()
@@ -28,6 +31,7 @@ class AreaSelectorView: UIView {
         super.init(coder: coder)
         setupAreaSelector()
     }
+    
     
     private func setupAreaSelector() {
         selectionLayer.fillColor = UIColor.blue.withAlphaComponent(0.2).cgColor
@@ -47,7 +51,13 @@ class AreaSelectorView: UIView {
             pointView.addGestureRecognizer(panGesture)
         }
         
+        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handleSelectionLayerPan(_:)))
+        moveIconView.isUserInteractionEnabled = true
+        addSubview(moveIconView)
+        moveIconView.addGestureRecognizer(panGesture)
+        
         centerInitialArea()
+        updateMoveHandlePosition()
     }
     
     private func centerInitialArea() {
@@ -63,6 +73,29 @@ class AreaSelectorView: UIView {
         updateSelectionLayer()
     }
     
+    @objc private func handleSelectionLayerPan(_ gesture: UIPanGestureRecognizer) {
+        let translation = gesture.translation(in: self)
+        
+        // Move all corner points together
+        for point in cornerPoints {
+            point.center = CGPoint(
+                x: point.center.x + translation.x,
+                y: point.center.y + translation.y
+            )
+        }
+        
+        // Move the handle itself
+        moveIconView.center = CGPoint(
+            x: moveIconView.center.x + translation.x,
+            y: moveIconView.center.y + translation.y
+        )
+        
+        // Reset translation to zero after applying
+        gesture.setTranslation(.zero, in: self)
+        
+        updateSelectionLayer()
+    }
+    
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
         guard let pointView = gesture.view else { return }
         let translation = gesture.translation(in: self)
@@ -74,6 +107,7 @@ class AreaSelectorView: UIView {
         
         gesture.setTranslation(.zero, in: self)
         constrainPointMovement(movedPoint: pointView)
+        updateMoveHandlePosition()
         updateSelectionLayer()
     }
     
@@ -99,7 +133,7 @@ class AreaSelectorView: UIView {
             points[2].frame.origin.y = points[3].frame.origin.y
         }
     }
-    
+
     private func updateSelectionLayer() {
         let path = UIBezierPath()
         path.move(to: cornerPoints[0].center)
@@ -111,6 +145,12 @@ class AreaSelectorView: UIView {
         selectionLayer.path = path.cgPath
     }
     
+    private func updateMoveHandlePosition() {
+        let minY = cornerPoints.map { $0.frame.maxY }.max() ?? 0
+        let centerX = (cornerPoints[0].center.x + cornerPoints[1].center.x) / 2
+        moveIconView.frame = CGRect(x: centerX - handleSize / 2, y: minY + 10, width: handleSize, height: handleSize)
+    }
+    
     func getSelectedArea() -> CGRect {
         let points = cornerPoints.map { $0.center }
         let minX = points.min(by: { $0.x < $1.x })!.x
@@ -120,4 +160,5 @@ class AreaSelectorView: UIView {
         
         return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
+    
 }

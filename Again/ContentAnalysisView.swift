@@ -501,30 +501,11 @@ extension ContentAnalysisViewController {
             self.noObservationFrameCount += 1
             if self.noObservationFrameCount > 10 {
                 var trajectoryPoints = NSOrderedSet(array: trajectoryView.uniquePoints).map({ $0 as! CGPoint })
-//                    .map { controller.viewPointForVisionPoint($0.location) }
-                guard trajectoryPoints.contains(where: { hoopSafeAreaView.frame.contains($0) }) else {
-                    print("trajectory safe areada deyil hec")
-                    for point in trajectoryPoints/*trajectoryView.points.map ({ controller.viewPointForVisionPoint($0.location) })*/ {
-                        let v = UIView(frame: .init(origin: point, size: CGSize(width: 5, height: 5)))
-                        v.backgroundColor = .magenta
-//                        view.addSubview(v) 
-                        view.bringSubviewToFront(v)
-                    }
-                    
+                trajectoryPoints = trajectoryPoints.filter { hoopSafeAreaView.frame.contains($0) }
+                guard !trajectoryPoints.isEmpty else {
+                    print("safe areada trajectory yoxdu")
                     trajectoryView.resetPath()
                     return
-                }
-                
-                
-                trajectoryPoints = trajectoryView.uniquePoints.filter { hoopSafeAreaView.frame.contains($0) }
-                
-                if playerStats.shotCount == 1 {
-                    for point in [trajectoryPoints.first!, trajectoryPoints.last!] {
-                        v = UIView(frame: .init(origin: point, size: CGSize(width: 5, height: 5)))
-                        v.backgroundColor = .magenta
-                        view.addSubview(v)
-                        view.bringSubviewToFront(v)
-                    }
                 }
                 
                 if trajectoryPoints.first!.y > hoopRegion.maxY && trajectoryPoints.last!.y > hoopRegion.maxY {
@@ -533,7 +514,15 @@ extension ContentAnalysisViewController {
                     return
                 }
                 
-                #warning("bu kodu gozellesdirmek olar")
+                let startPointX = trajectoryPoints.first!.x
+                let isStartPointOnLeftSideOfHoop = startPointX < hoopRegion.minX
+                let isPlayerOnLeftSideOfHoop = playerBoundingBox.frame.maxX < hoopRegion.minX
+                
+                if isStartPointOnLeftSideOfHoop != isPlayerOnLeftSideOfHoop {
+                    print("player and start of the trajectory is not on same side")
+                    trajectoryView.resetPath()
+                    return
+                }
                 
                 throwCompletedAction(controller, trajectoryPoints)
             }
