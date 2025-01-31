@@ -43,8 +43,8 @@ class CameraViewController: UIViewController {
     private let gameManager = GameManager.shared
 
     // Live camera feed management
-    private var cameraFeedView: CameraFeedView!
-    private var cameraFeedSession: AVCaptureSession?
+    var cameraFeedView: CameraFeedView!
+    var cameraFeedSession: AVCaptureSession?
 
     // Video file playback management
     var videoRenderView: VideoRenderView!
@@ -191,6 +191,28 @@ class CameraViewController: UIViewController {
         videoRenderView.player = nil
     }
     
+    private var videoPlayer: AVPlayer? {
+        return videoRenderView?.player
+    }
+    
+    func playVideo() {
+        videoPlayer?.play()
+        displayLink?.isPaused = false
+    }
+    
+    func pauseVideo() {
+        videoPlayer?.pause()
+        displayLink?.isPaused = true
+    }
+    
+    func restartVideo() {
+        videoPlayer?.seek(to: .zero) { [weak self] completed in
+            if completed {
+                self?.playVideo()
+            }
+        }
+    }
+    
     func startReadingAsset(_ asset: AVAsset) {
         videoRenderView = VideoRenderView(frame: view.bounds)
         setupVideoOutputView(videoRenderView)
@@ -213,7 +235,7 @@ class CameraViewController: UIViewController {
         ]
         let output = AVPlayerItemVideoOutput(pixelBufferAttributes: settings)
         playerItem.add(output)
-        player.actionAtItemEnd = .pause
+        player.actionAtItemEnd = .none
         player.play()
 
         self.displayLink = displayLink

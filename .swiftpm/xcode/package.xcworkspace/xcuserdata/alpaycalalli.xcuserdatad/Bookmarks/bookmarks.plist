@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>495</string>
+					<string>567</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>494</string>
+					<string>566</string>
 					<key>Timestamp</key>
-					<string>759667138.956203</string>
+					<string>760030143.764562</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -37,8 +37,8 @@
 				<string>                        trajectoryView.resetPath()
 </string>
 				<key>leading</key>
-				<string>                        showShotMetrics = false
-                        print("resetting path")
+				<string>                    if showShotMetrics {
+                        showShotMetrics = false
 </string>
 				<key>trailing</key>
 				<string>//                        delegate.showLastShowMetrics(metrics: nil)
@@ -59,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>98</string>
+					<string>102</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>97</string>
+					<string>101</string>
 					<key>Timestamp</key>
-					<string>759658538.50059</string>
+					<string>759668812.4497499</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -106,13 +106,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>153</string>
+					<string>163</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>152</string>
+					<string>162</string>
 					<key>Timestamp</key>
-					<string>759667138.9563659</string>
+					<string>759837398.957111</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>

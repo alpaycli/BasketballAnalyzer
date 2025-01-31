@@ -20,7 +20,7 @@ enum ShotResult: Equatable {
     
     enum ShotMissReason: String {
         case short = "Short"
-        case long = "None"
+        case long = "Long"
         // means hit the rim
         case none = "Miss" // or nice try
     }

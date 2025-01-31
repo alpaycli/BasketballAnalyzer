@@ -50,9 +50,9 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
             uiViewController.manualHoopAreaSelectorView.isHidden = false
         case .done:
             uiViewController.setHoopRegion()
-            DispatchQueue.main.async {
-                viewModel.manualHoopSelectorState = .none
-            }
+//            DispatchQueue.main.async {
+//                viewModel.manualHoopSelectorState = .none
+//            }
         }
         
         if viewModel.isFinishButtonPressed {
@@ -126,7 +126,17 @@ class ContentAnalysisViewController: UIViewController {
     private let jointSegmentView = JointSegmentView()
     
     var manualHoopAreaSelectorView: AreaSelectorView!
-    private var hoopRegion: CGRect = .zero
+    private var hoopRegion: CGRect = .zero {
+        didSet {
+            hoopSafeAreaView = UIView(frame: hoopRegion.inset(by: .init(top: -100, left: -100, bottom: -50, right: -100)))
+            hoopSafeAreaView.backgroundColor = UIColor(.red.opacity(0.4))
+            print("hoopSafeAreaView frame", hoopSafeAreaView.frame)
+            hoopSafeAreaView.isHidden = false
+            view.addSubview(hoopSafeAreaView)
+            view.bringSubviewToFront(hoopSafeAreaView)
+        }
+    }
+    private var hoopSafeAreaView = UIView(frame: .zero)
     
     private var trajectoryInFlightPoseObservations = 0
     private var noObservationFrameCount = 0
@@ -157,6 +167,8 @@ class ContentAnalysisViewController: UIViewController {
     private var playerStats = PlayerStats()
     private var lastShotMetrics = ShotMetrics()
     
+    var v = UIView()
+    
     // MARK: - Life Cycle
     
     override func viewDidLoad() {
@@ -169,7 +181,11 @@ class ContentAnalysisViewController: UIViewController {
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        trajectoryView.roi = view.frame
+        trajectoryView.roi = cameraViewController.viewRectForVisionRect(.init(x: 0, y: 0.5, width: 1, height: 0.5))
+//        let newView = UIView(frame: trajectoryView.roi)
+//        newView.backgroundColor = UIColor(Color.cyan.opacity(0.3))
+//        view.addSubview(newView)
+//        view.bringSubviewToFront(manualHoopAreaSelectorView)
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -201,19 +217,22 @@ class ContentAnalysisViewController: UIViewController {
         let selectedArea = manualHoopAreaSelectorView.getSelectedArea()
         self.hoopRegion = selectedArea
         updateBoundingBox(boardBoundingBox, withRect: selectedArea)
-        manualHoopAreaSelectorView.isHidden = false
-        
+        manualHoopAreaSelectorView.isHidden = true
+
         if let recordedVideoSource {
-            cameraViewController.stopVideoPlayer()
-            NotificationCenter.default.removeObserver(self)
-            cameraViewController.startReadingAsset(recordedVideoSource)
-            NotificationCenter.default
-                .addObserver(self,
-                selector: #selector(playerDidFinishPlaying),
-                name: .AVPlayerItemDidPlayToEndTime,
-                object: cameraViewController.videoRenderView.player!.currentItem
-            )
+            cameraViewController.restartVideo()
+//            cameraViewController.videoRenderView.player?.replaceCurrentItem(with: .init(asset: recordedVideoSource))
+//            cameraViewController.stopVideoPlayer()
+//            NotificationCenter.default.removeObserver(self)
+//            cameraViewController.startReadingAsset(recordedVideoSource)
+//            NotificationCenter.default
+//                .addObserver(self,
+//                selector: #selector(playerDidFinishPlaying),
+//                name: .AVPlayerItemDidPlayToEndTime,
+//                object: cameraViewController.videoRenderView.player!.currentItem
+//            )
         }
+        
         
         gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
     }
@@ -288,6 +307,7 @@ class ContentAnalysisViewController: UIViewController {
         view.addSubview(jointSegmentView)
         view.addSubview(trajectoryView)
         view.addSubview(manualHoopAreaSelectorView)
+        view.addSubview(hoopSafeAreaView)
 //        gameStatusLabel.text = "Waiting for player"
         // Set throw type counters
 //        underhandThrowView.throwType = .underhand
@@ -311,6 +331,7 @@ class ContentAnalysisViewController: UIViewController {
         view.bringSubviewToFront(jointSegmentView)
         view.bringSubviewToFront(trajectoryView)
         view.bringSubviewToFront(manualHoopAreaSelectorView)
+        view.bringSubviewToFront(hoopSafeAreaView)
         
         do {
             if recordedVideoSource != nil {
@@ -466,24 +487,76 @@ extension ContentAnalysisViewController {
                     }
                 }
             } catch {
-                print("error", error.localizedDescription)
+//                print("error", error.localizedDescription)
             }
         }
     }
-    
+    var isPlayerHoopDifferencePositive: Bool {
+//        print("playerboundingbox.frame", playerBoundingBox.frame)
+        return hoopRegion.midX - playerBoundingBox.frame.midX > 0
+    }
     private func processTrajectoryObservations(_ controller: CameraViewController, _ results: [VNTrajectoryObservation]) {
         if self.trajectoryView.inFlight && results.count < 1 {
             // The trajectory is already in flight but VNDetectTrajectoriesRequest doesn't return any trajectory observations.
             self.noObservationFrameCount += 1
-            if self.noObservationFrameCount > GameConstants.noObservationFrameLimit {
-                throwCompletedAction(controller)
+            if self.noObservationFrameCount > 10 {
+                var trajectoryPoints = NSOrderedSet(array: trajectoryView.uniquePoints).map({ $0 as! CGPoint })
+//                    .map { controller.viewPointForVisionPoint($0.location) }
+                guard trajectoryPoints.contains(where: { hoopSafeAreaView.frame.contains($0) }) else {
+                    print("trajectory safe areada deyil hec")
+                    for point in trajectoryPoints/*trajectoryView.points.map ({ controller.viewPointForVisionPoint($0.location) })*/ {
+                        let v = UIView(frame: .init(origin: point, size: CGSize(width: 5, height: 5)))
+                        v.backgroundColor = .magenta
+//                        view.addSubview(v) 
+                        view.bringSubviewToFront(v)
+                    }
+                    
+                    trajectoryView.resetPath()
+                    return
+                }
+                
+                
+                trajectoryPoints = trajectoryView.uniquePoints.filter { hoopSafeAreaView.frame.contains($0) }
+                
+                if playerStats.shotCount == 1 {
+                    for point in [trajectoryPoints.first!, trajectoryPoints.last!] {
+                        v = UIView(frame: .init(origin: point, size: CGSize(width: 5, height: 5)))
+                        v.backgroundColor = .magenta
+                        view.addSubview(v)
+                        view.bringSubviewToFront(v)
+                    }
+                }
+                
+                if trajectoryPoints.first!.y > hoopRegion.maxY && trajectoryPoints.last!.y > hoopRegion.maxY {
+                    print("trajectory asagida baslayib asagida bitir, bosver")
+                    trajectoryView.resetPath()
+                    return
+                }
+                
+                #warning("bu kodu gozellesdirmek olar")
+                
+                throwCompletedAction(controller, trajectoryPoints)
             }
         } else {
             for path in results where path.confidence > GameConstants.trajectoryDetectionMinConfidence {
+//                guard path.detectedPoints.contains(where: { $0.y >= hoopRegion.midY }) else { return }
+                guard let start = path.detectedPoints.first?.x,
+                      let end = path.detectedPoints.last?.x else { return }
+                
+                let isPositive = end - start > 0
+                
+                if isPositive != isPlayerHoopDifferencePositive {
+//                    print("not normal trajectory")
+                    return
+                }
+                
                 // VNDetectTrajectoriesRequest has returned some trajectory observations.
                 // Process the path only when the confidence is over 90%.
+//                print("detectedpoints", path.detectedPoints.map { controller.viewPointForVisionPoint($0.location) })
+//                print("---", playerStats.shotCount)
                 self.trajectoryView.duration = path.timeRange.duration.seconds
                 self.trajectoryView.points = path.detectedPoints
+                trajectoryView.uniquePoints.append(contentsOf: path.detectedPoints.map { controller.viewPointForVisionPoint($0.location) })
                 self.trajectoryView.performTransition(.fadeIn, duration: 0.25)
                 if !self.trajectoryView.fullTrajectory.isEmpty {
 //                    self.updateTrajectoryRegions()
@@ -491,7 +564,6 @@ extension ContentAnalysisViewController {
                     // Hide the previous shot metrics once a new shot is detected.
                     if showShotMetrics {
                         showShotMetrics = false
-                        print("resetting path")
                         trajectoryView.resetPath()
 //                        delegate.showLastShowMetrics(metrics: nil)
                     }
@@ -545,7 +617,7 @@ extension ContentAnalysisViewController {
                 }
             }
         } catch {
-            print("error", error.localizedDescription)
+//            print("error", error.localizedDescription)
         }
     }
     
@@ -587,10 +659,16 @@ extension ContentAnalysisViewController {
         self.gameManager.stateMachine.enter(GameManager.ThrowCompletedState.self)
     }
     
-    private func throwCompletedAction(_ controller: CameraViewController) {
-        let trajectoryPoints = trajectoryView.points
-            .map { controller.viewPointForVisionPoint($0.location) }
+    private func throwCompletedAction(_ controller: CameraViewController, _ trajectoryPoints: [CGPoint]) {
         guard !trajectoryPoints.isEmpty else { return }
+        if playerStats.shotCount == 2 {
+            for point in trajectoryPoints {
+                let v = UIView(frame: .init(origin: point, size: CGSize(width: 5, height: 5)))
+                v.backgroundColor = .magenta
+                //                view.addSubview(v)
+                view.bringSubviewToFront(v)
+            }
+        }
         
         var shotResult: ShotResult = .miss(.none)
         
@@ -599,16 +677,58 @@ extension ContentAnalysisViewController {
         let isStartPointOnLeftSideOfHoop = startPointX < hoopRegion.minX
         let isEndPointOnLeftSideOfHoop = endPointX < hoopRegion.minX
         
+        print("trajectorypoints", trajectoryPoints.map { $0 })
+        print("hoopRegion", hoopRegion)
+        print("startPointX", startPointX)
+        print("endPointX", endPointX)
+        print("isStartPointOnLeftSideOfHoop", isStartPointOnLeftSideOfHoop)
+        print("isEndPointOnLeftSideOfHoop", isEndPointOnLeftSideOfHoop)
+        print("to compare", trajectoryPoints.first, trajectoryPoints.last)
+        print(":")
+        
+        if playerStats.shotCount == 2 {
+            for point in [trajectoryPoints.first!, trajectoryPoints.last!] {
+                let v = UIView(frame: .init(origin: point, size: CGSize(width: 5, height: 5)))
+                v.backgroundColor = .magenta
+//                view.addSubview(v)
+                view.bringSubviewToFront(v)
+            }
+        }
+         
+        // > asagida olmaq demekdir
+        // < yuxarida olmaq demekdir
         if let _ = trajectoryPoints.first(where: { hoopRegion.contains($0) }) {
-            shotResult = .score
+            if isStartPointOnLeftSideOfHoop,
+               let oppositeSidePoint = trajectoryPoints.first(where: { $0.x > hoopRegion.maxX }),
+               oppositeSidePoint.y < hoopRegion.minY {
+                print("saga dogru atilan top deyib qayidib")
+                shotResult = .miss(.none)
+            } else if !isStartPointOnLeftSideOfHoop,
+                    let oppositeSidePoint = trajectoryPoints.first(where: { $0.x < hoopRegion.minX }),
+                      oppositeSidePoint.y < hoopRegion.minY {
+                print("sola dogru atilan top deyib qayidib", oppositeSidePoint.y, hoopRegion.maxY, hoopRegion.minY)
+                shotResult = .miss(.none)
+            } else {
+                print("score")
+                shotResult = .score
+            }
+            
         } else if (startPointX < hoopRegion.minX && endPointX > hoopRegion.maxX) || (startPointX > hoopRegion.maxX && endPointX < hoopRegion.minX) {
+            print("long")
             shotResult = .miss(.long)
         } else if isStartPointOnLeftSideOfHoop == isEndPointOnLeftSideOfHoop {
+            print("short")
             shotResult = .miss(.short)
         }
-        
-        
+                
         updatePlayerStats(controller, shotResult: shotResult)
+        
+        print(playerStats.totalScore, "makes from", playerStats.shotCount, "attempts")
+        print("-----")
+//        if playerStats.shotCount == 4 {
+//            gameManager.stateMachine.enter(GameManager.InactiveState.self)
+//            return
+//        }
         trajectoryView.resetPath()
     }
     
@@ -624,6 +744,7 @@ extension ContentAnalysisViewController {
 
 extension ContentAnalysisViewController: GameStateChangeObserver {
     func gameManagerDidEnter(state: GameManager.State, from previousState: GameManager.State?) {
+        print("gamestage", state)
         switch state {
         case is GameManager.DetectedPlayerState:
             playerDetected = true
@@ -637,7 +758,7 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
                 self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
 //            }
         case is GameManager.TrackThrowsState:
-            trajectoryView.roi = view.frame
+            trajectoryView.roi = cameraViewController.viewRectForVisionRect(.init(x: 0, y: 0.5, width: 1, height: 0.5))
         case is GameManager.DetectedBoardState:
 //            setupStage =  .setupComplete
 //            statusLabel.text = "Board Detected"
@@ -682,7 +803,7 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             cameraViewController.stopCameraSession()
             
             if !trajectoryView.fullTrajectory.isEmpty {
-                throwCompletedAction(cameraViewController)
+                throwCompletedAction(cameraViewController, NSOrderedSet(array: trajectoryView.uniquePoints).map({ $0 as! CGPoint }))
             }
             boardBoundingBox.isHidden = true
             

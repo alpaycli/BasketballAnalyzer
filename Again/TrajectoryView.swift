@@ -23,11 +23,12 @@ class TrajectoryView: UIView, AnimatedTransitioning {
     var fullTrajectory = UIBezierPath()
     var duration = 0.0
     var speed = 0.0
+    var uniquePoints: [CGPoint] = []
     var points: [VNPoint] = [] {
         didSet {
-            if isTrajectoryInTopOfScreen {
+//            if isTrajectoryInTopOfScreen {
                 updatePathLayer()
-            }
+//            }
         }
     }
     
@@ -74,6 +75,9 @@ class TrajectoryView: UIView, AnimatedTransitioning {
     }
 
     func resetPath() {
+        uniquePoints = []
+        
+        print("reset path called ")
         inFlight = false
         distanceWithCurrentTrajectory = 0
         fullTrajectory.removeAllPoints()
@@ -136,17 +140,20 @@ class TrajectoryView: UIView, AnimatedTransitioning {
 //        print("distanceWithCurrentTrajectory", distanceWithCurrentTrajectory)
         if (roi.contains(trajectory.currentPoint) || (inFlight && roi.contains(startScaled))) {
             if !inFlight {
-                print("nonono")
                 // This is the first trajectory detected for the throw. Compute the speed in pts/sec
                 // Length of the trajectory is calculated by measuring the distance between the first and last point on the trajectory
                 // length = sqrt((final.x - start.x)^2 + (final.y - start.y)^2)
                 let trajectoryLength = trajectory.currentPoint.distance(to: startScaled)
+//                print("trajectorylength", trajectoryLength)
                 
                 // Speed is computed by dividing the length of the trajectory with the duration for the trajectory
                 speed = Double(trajectoryLength) / duration
                 fullTrajectory = trajectory
             }
-            fullTrajectory.append(trajectory)
+            let trajectoryLength = trajectory.currentPoint.distance(to: startScaled)
+            if trajectoryLength > 100 {
+                fullTrajectory.append(trajectory)
+            }
             shadowLayer.path = fullTrajectory.cgPath
             blurLayer.path = fullTrajectory.cgPath
             pathLayer.path = fullTrajectory.cgPath

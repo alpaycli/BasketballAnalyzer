@@ -54,6 +54,8 @@ struct ContentView: View {
     
     var pub = NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
     
+    @Namespace private var namespace
+    
     // MARK: - Summary
 
     // bu deyqe lazimsizdi
@@ -73,9 +75,11 @@ struct ContentView: View {
             }
             .navigationDestination(item: $recordedVideoSource) { item in
                 contentViewWithRecordedVideo(item)
+                    .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
             }
             .navigationDestination(isPresented: $isLiveCameraSelected) {
                 contentViewWithLiveCamera
+                    .navigationTransition(.zoom(sourceID: "liveCameraZoom", in: namespace))
             }
             .onReceive(pub) { c in
                 print("video ended in view", c.name.rawValue, c.name)
@@ -292,6 +296,15 @@ extension ContentView {
                         Text(lastShotMetrics.speed.formatted() + " MPH")
                             .fontWeight(.bold)
                             .foregroundStyle(.orange)
+                        
+                        if lastShotMetrics.shotResult != .score {
+                            Text("Miss Reason: ")
+                                .foregroundStyle(.white)
+                            +
+                            Text(lastShotMetrics.shotResult.description)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.orange)
+                        }
                     }
                     .padding()
                 }
