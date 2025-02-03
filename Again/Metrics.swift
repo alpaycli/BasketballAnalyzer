@@ -61,13 +61,29 @@ struct PlayerStats: Equatable {
     var topSpeed: Double {
         allSpeeds.max() ?? 0
     }
-    var avgReleaseAngle: Double {
+    var avgReleaseAngle: Double? {
+        guard !allSpeeds.isEmpty else { return nil }
         let sum = Int(allReleaseAngles.reduce(0, +))
         return Double(sum / allReleaseAngles.count)
     }
-    var avgSpeed: Double {
+    var avgSpeed: Double? {
+        let allSpeeds = allSpeeds.filter({ $0.isNormal })
+        guard !allSpeeds.isEmpty else { return nil }
         let sum = Int(allSpeeds.reduce(0, +))
         return Double(sum / allSpeeds.count)
+    }
+    var mostMissReason: String? {
+        shotResults
+            .filter {
+                if case .miss(.long) = $0 {
+                    return true
+                } else if case .miss(.short) = $0 {
+                    return true
+                }
+                return false
+            }
+            .map { $0.description }
+            .mostFrequentElement()
     }
     
 //    var poseObservations = [VNHumanBodyPoseObservation]()
@@ -147,4 +163,30 @@ func armJoints(for observation: VNHumanBodyPoseObservation) -> (CGPoint, CGPoint
         }
     }
     return (rightElbow, rightWrist)
+}
+
+extension Array where Element == String {
+    func mostFrequentElement() -> String? {
+        guard let first = first else { return nil }
+        
+        var dict: [String : Int] = [first : 0]
+        
+        for item in self {
+            if let existingItem = dict.first(where: { $0.key == item }) {
+                dict.updateValue(existingItem.value + 1, forKey: existingItem.key)
+            } else {
+                // create new one with initial value 0
+                dict[item] = 0
+            }
+        }
+        
+        return dict.max(by: { $0.value < $1.value })?.key
+    }
+    
+//    func mostFrequentElement() -> String? {
+//        let counts = self.reduce(into: [:]) { counts, element in
+//            counts[element, default: 0] += 1
+//        }
+//        return counts.max(by: { $0.value < $1.value })?.key
+//    }
 }

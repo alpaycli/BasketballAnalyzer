@@ -5,6 +5,7 @@
 //  Created by Alpay Calalli on 18.12.24.
 //
 
+import ReplayKit
 import SwiftUI
 import UIKit
 import AVFoundation
@@ -194,6 +195,10 @@ class ContentAnalysisViewController: UIViewController {
         setupStateModel = .init()
         delegate?.updateSetupState(setupStateModel)
         NotificationCenter.default.removeObserver(self)
+        
+        if RPScreenRecorder.shared().isRecording {
+            RPScreenRecorder.shared().stopRecording()
+        }
     }
     
     // MARK: - Init
@@ -346,6 +351,12 @@ class ContentAnalysisViewController: UIViewController {
             } else {
                 // Start live camera capture.
                 try cameraViewController.setupAVSession()
+            }
+            
+            RPScreenRecorder.shared().startRecording { err in
+                if let err {
+                    print("record error", err)
+                }
             }
         } catch {
             print("error--", error.localizedDescription)
@@ -797,8 +808,200 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             boardBoundingBox.isHidden = true
             
             showAllTrajectories()
+            
+            RPScreenRecorder.shared().stopRecording { [weak self] preview, err in
+                guard let preview,
+                      let self
+                else {
+                    print("no preview window"); return
+                }
+                
+                let newOverlay = UIHostingController(rootView: SummaryView(previewVC: preview, playerStats: self.playerStats))
+                newOverlay.view.frame = self.view.bounds
+                self.addChild(newOverlay)
+                newOverlay.beginAppearanceTransition(true, animated: true)
+                newOverlay.view.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+                self.view.addSubview(newOverlay.view)
+                newOverlay.endAppearanceTransition()
+                newOverlay.didMove(toParent: self)
+                
+//                preview.modalPresentationStyle = .overFullScreen
+//                preview.previewControllerDelegate = self
+//                self.present(preview, animated: true)
+            }
         default:
             break
         }
+    }
+    
+    func previewControllerDidFinish(_ previewController: RPPreviewViewController) {
+        previewController.dismiss(animated: true)
+    }
+}
+
+struct RPPreviewView: UIViewControllerRepresentable {
+    let previewVC: RPPreviewViewController
+    init(previewVC: RPPreviewViewController) {
+        self.previewVC = previewVC
+    }
+    
+    
+    func makeUIViewController(context: Context) -> RPPreviewViewController {
+        previewVC.previewControllerDelegate = context.coordinator
+        
+        //                preview.modalPresentationStyle = .overFullScreen
+        
+        //                self.present(preview, animated: true)
+        
+        return previewVC
+    }
+    
+    func updateUIViewController(_ uiViewController: RPPreviewViewController, context: Context) {
+        
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator: NSObject, RPPreviewViewControllerDelegate {
+        func previewControllerDidFinish(_ previewController: RPPreviewViewController) {
+            previewController.dismiss(animated: true)
+        }
+    }
+}
+
+struct SummaryView: View {
+    @State private var showPreviewController = false
+    
+    let previewVC: RPPreviewViewController
+    
+    @Environment(\.dismiss) var dismiss
+    @State private var isDismiss = false
+    
+    let makesCount: Int
+    let attemptsCount: Int
+    var shotAccuracy: Double {
+        (Double(makesCount) / Double(attemptsCount)) * 100
+    }
+    
+    let mostMissReason: String?
+    let avgReleaseAngle: Double?
+    let avgBallSpeed: Double?
+    
+    init(
+        previewVC: RPPreviewViewController,
+        makesCount: Int,
+        attemptsCount: Int,
+        mostMissReason: String,
+        avgReleaseAngle: Double,
+        avgBallSpeed: Double
+    ) {
+        self.previewVC = previewVC
+        self.makesCount = makesCount
+        self.attemptsCount = attemptsCount
+        self.mostMissReason = mostMissReason
+        self.avgReleaseAngle = avgReleaseAngle
+        self.avgBallSpeed = avgBallSpeed
+    }
+    
+    init(
+        previewVC: RPPreviewViewController,
+        playerStats: PlayerStats
+    ) {
+        self.previewVC = previewVC
+        self.makesCount = playerStats.totalScore
+        self.attemptsCount = playerStats.shotCount
+        self.mostMissReason = playerStats.mostMissReason
+        self.avgReleaseAngle = playerStats.avgReleaseAngle
+        self.avgBallSpeed = playerStats.avgSpeed
+        
+        print("allrelease angles", playerStats.allReleaseAngles)
+        print("all speeds", playerStats.allSpeeds)
+        print("all miss reasons",
+              playerStats.shotResults
+                .filter { if case .miss = $0 { return true }; return false }
+                .map { $0.description }
+        )
+    }
+    
+    init(previewVC: RPPreviewViewController) {
+        self.previewVC = previewVC
+        self.makesCount = 0
+        self.attemptsCount = 0
+        self.mostMissReason = ""
+        self.avgReleaseAngle = 0
+        self.avgBallSpeed = 0
+    }
+    
+    var body: some View {
+        VStack(spacing: 30) {
+            HStack(spacing: 20) {
+                SummaryStatView(makesCount.formatted(), "makes")
+                Text("|").font(.largeTitle)
+                SummaryStatView(attemptsCount.formatted(), "attempts")
+                Text("|").font(.largeTitle)
+                SummaryStatView(String(format: "%.0f", shotAccuracy) + "%", "accuracy")
+            }
+            
+            HStack(spacing: 40) {
+                if let mostMissReason {
+                    SummaryStatView(mostMissReason, "most miss \n reason")
+                }
+                if let avgReleaseAngle {
+                    SummaryStatView(avgReleaseAngle.formatted() + "°", "avg. release \n angle")
+                }
+                if let avgBallSpeed {
+                    SummaryStatView(avgBallSpeed.formatted() + " MPH", "avg. ball \n speed")
+                }
+            }
+            
+//            Button("Save Video") {
+//                showPreviewController = true
+//            }
+        }
+        .fullScreenCover(isPresented: $showPreviewController, onDismiss: {
+            print("preview dismissed")
+        }) {
+            RPPreviewView(previewVC: previewVC)
+                .ignoresSafeArea()
+        }
+    }
+}
+
+#Preview {
+    ZStack {
+        Color.black.opacity(0.6)
+            .ignoresSafeArea()
+            
+        SummaryView(previewVC: .init())
+    }
+}
+
+struct SummaryStatView: View {
+    let title: String
+    let subtitle: String
+    
+    init(title: String, subtitle: String) {
+        self.title = title
+        self.subtitle = subtitle
+    }
+    
+    init(_ title: String, _ subtitle: String) {
+        self.title = title
+        self.subtitle = subtitle
+    }
+    
+    var body: some View {
+        VStack(alignment: .center) {
+            Text(title)
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            Text(subtitle)
+                .font(.title)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .foregroundStyle(.white)
     }
 }

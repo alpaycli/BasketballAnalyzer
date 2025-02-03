@@ -27,11 +27,11 @@ let package = Package(
                 .phone
             ],
             supportedInterfaceOrientations: [
-                .landscapeRight,
-//                .landscapeLeft
+                .landscapeRight
             ],
             capabilities: [
-                .camera(purposeString: "I need it.")
+                .camera(purposeString: "I need it."),
+                .photoLibraryAdd(purposeString: "We need")
             ]
         )
     ],
