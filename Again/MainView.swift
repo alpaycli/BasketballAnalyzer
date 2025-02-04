@@ -20,6 +20,8 @@ class ContentViewModel {
     var setupStateModel = SetupStateModel()
     var isFinishButtonPressed = false
     
+    var hoopDetectionRequest: VNCoreMLRequest
+    
     func reset() {
         manualHoopSelectorState = .none
         lastShotMetrics = nil
@@ -27,6 +29,13 @@ class ContentViewModel {
         setupGuideLabel = nil
         setupStateModel = .init()
         isFinishButtonPressed = false
+    }
+    
+    init() {
+        // Create Vision request based on CoreML model
+        let model = try! VNCoreMLModel(for: HoopDetectorBeta13x13(configuration: MLModelConfiguration()).model)
+        hoopDetectionRequest = VNCoreMLRequest(model: model)
+        
     }
 }
 
