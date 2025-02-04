@@ -52,6 +52,12 @@ struct ContentView: View {
         return !viewModel.setupStateModel.isAllDone
     }
     
+    @State private var isVideoEnded = false
+    
+    var showMetricsAndScore: Bool {
+        !isVideoEnded && !viewModel.isFinishButtonPressed
+    }
+    
     var pub = NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
     
     @Namespace private var namespace
@@ -64,14 +70,56 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                Button("Import video") { showFileImporter = true }
-                
-                Button("Live Camera") {
-                    GameManager.shared.reset()
-                    GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
-                    
-                    isLiveCameraSelected = true
+                HStack {
+                    Spacer()
+                    Button("Show Guides") {
+                        
+                    }
+                    .font(.largeTitle)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .tint(.red)
+                     .foregroundStyle(.white)
+                     .fontWeight(.bold)
+                     .padding()
                 }
+                Spacer()
+                
+                VStack {
+                    Image(systemName: "square.and.arrow.up")
+                    Button("Upload video") { showFileImporter = true }
+                }
+                .frame(width: 280, height: 220)
+                .background(.gray, in: .rect(cornerRadius: 15))
+                .foregroundStyle(.white)
+                .fontWeight(.bold)
+                .font(.largeTitle)
+                
+                VStack {
+                    Image(systemName: "video")
+                    Button("Live Camera") {
+                        GameManager.shared.reset()
+                        GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
+                        
+                        isLiveCameraSelected = true
+                    }
+                }
+                .frame(width: 280, height: 220)
+                .background(.gray, in: .rect(cornerRadius: 15))
+                .foregroundStyle(.white)
+                .fontWeight(.bold)
+                .font(.largeTitle)
+                
+                Button("Test with a sample video") {
+                    
+                }
+                .font(.title.smallCaps())
+                .fontDesign(.rounded)
+                .fontWeight(.bold)
+                .foregroundStyle(.blue)
+                .padding(.top)
+                
+                Spacer()
             }
             .navigationDestination(item: $recordedVideoSource) { item in
                 contentViewWithRecordedVideo(item)
@@ -83,6 +131,7 @@ struct ContentView: View {
             }
             .onReceive(pub) { c in
                 print("video ended in view", c.name.rawValue, c.name)
+                isVideoEnded = true
 //                shotPaths = viewModel.playerStats?.shotPaths ?? []
             }
             .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
@@ -93,6 +142,7 @@ struct ContentView: View {
                     print("failure", error.localizedDescription)
                 }
             })
+            .buttonStyle(.plain)
 //            .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
 //            .onChange(of: photo) { oldValue, newValue in
 //                if let newValue {
@@ -171,6 +221,7 @@ extension ContentView {
             
             shotPaths = []
             viewModel.reset()
+            isVideoEnded = false
         }
         .padding()
         .labelStyle(.iconOnly)
@@ -278,10 +329,12 @@ extension ContentView {
                 }
             }
             .overlay(alignment: .bottom) {
-                makeAndAttemptsView
+                if showMetricsAndScore {
+                    makeAndAttemptsView
+                }
             }
             .overlay(alignment: .bottomLeading) {
-                if let lastShotMetrics = viewModel.lastShotMetrics {
+                if let lastShotMetrics = viewModel.lastShotMetrics, showMetricsAndScore {
                     VStack(alignment: .leading) {
                         Text("Release Angel: ")
                             .foregroundStyle(.white)
@@ -344,10 +397,12 @@ extension ContentView {
                 }
             }
             .overlay(alignment: .bottom) {
-                makeAndAttemptsView
+                if showMetricsAndScore {
+                    makeAndAttemptsView
+                }
             }
             .overlay(alignment: .bottomLeading) {
-                if let lastShotMetrics = viewModel.lastShotMetrics {
+                if let lastShotMetrics = viewModel.lastShotMetrics, showMetricsAndScore {
                     VStack(alignment: .leading) {
                         Text("Release Angel: ")
 //                            .zIndex(999)
@@ -393,18 +448,7 @@ extension ContentView {
 }
 
 #Preview {
-    Button("Stop", systemImage: "stop.circle") {
-        
-    }
-    .padding(.horizontal, 20)
-    .padding(.vertical, 10)
-    .background(.red.gradient, in: .rect(cornerRadius: 10, style: .continuous))
-    .foregroundStyle(.white)
-    .fontWeight(.bold)
-    .font(.headline.smallCaps())
-    
-    LongPressButton(duration: 0.4) {}
-//        .frame(width: 120, height: 50)
+    ContentView()
 }
 
 /*

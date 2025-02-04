@@ -936,11 +936,13 @@ struct SummaryView: View {
     
     var body: some View {
         VStack(spacing: 30) {
+            Spacer()
+            Spacer()
             HStack(spacing: 20) {
                 SummaryStatView(makesCount.formatted(), "makes")
-                Text("|").font(.largeTitle)
+                Text("|").font(.largeTitle).foregroundStyle(.white)
                 SummaryStatView(attemptsCount.formatted(), "attempts")
-                Text("|").font(.largeTitle)
+                Text("|").font(.largeTitle).foregroundStyle(.white)
                 SummaryStatView(String(format: "%.0f", shotAccuracy) + "%", "accuracy")
             }
             
@@ -956,9 +958,19 @@ struct SummaryView: View {
                 }
             }
             
-//            Button("Save Video") {
-//                showPreviewController = true
-//            }
+            Spacer()
+            HStack {
+                Spacer()
+                Button("Save Session") {
+                    showPreviewController = true
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.green)
+                .foregroundStyle(.white)
+                .fontWeight(.bold)
+                .padding()
+            }
         }
         .fullScreenCover(isPresented: $showPreviewController, onDismiss: {
             print("preview dismissed")
