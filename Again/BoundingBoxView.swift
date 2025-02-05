@@ -36,6 +36,11 @@ class BoundingBoxView: UIView, AnimatedTransitioning {
         super.init(coder: coder)
         initialSetup()
     }
+    
+    func reset() {
+        visionRect = .zero
+        visionPath = nil
+    }
 
     private func initialSetup() {
         isOpaque = false

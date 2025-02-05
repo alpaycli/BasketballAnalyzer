@@ -13,7 +13,11 @@ import SwiftUI
 
 @Observable
 class ContentViewModel {
-    var manualHoopSelectorState: AreaSelectorState = .none
+    var manualHoopSelectorState: AreaSelectorState = .none {
+        didSet {
+            print("manualHoopSelectorState", manualHoopSelectorState)
+        }
+    }
     var lastShotMetrics: ShotMetrics? = nil
     var playerStats: PlayerStats? = nil
     var setupGuideLabel: String? = nil
@@ -36,6 +40,10 @@ class ContentViewModel {
         let model = try! VNCoreMLModel(for: HoopDetectorBeta13x13(configuration: MLModelConfiguration()).model)
         hoopDetectionRequest = VNCoreMLRequest(model: model)
         
+    }
+    
+    var isHoopPlaced: Bool {
+        setupStateModel.hoopDetected
     }
 }
 
@@ -291,16 +299,20 @@ extension ContentView {
         HStack {
             if viewModel.manualHoopSelectorState == .inProgress {
                 Button("Cancel") {
-                    viewModel.manualHoopSelectorState = .none
+                    if viewModel.isHoopPlaced {
+                        viewModel.manualHoopSelectorState = .done
+                    } else {
+                        viewModel.manualHoopSelectorState = .none
+                    }
                 }
                 .buttonStyle(.borderless)
                 .tint(.green)
                 .font(.headline.smallCaps())
                 .padding()
             }
-            Button(viewModel.manualHoopSelectorState == .inProgress ? "Done" : "Set Hoop Manually") {
+            Button(viewModel.manualHoopSelectorState == .inProgress ? "Set" : "Set Hoop Manually") {
                 if viewModel.manualHoopSelectorState == .inProgress {
-                    viewModel.manualHoopSelectorState = .done
+                    viewModel.manualHoopSelectorState = .set
                 } else {
                     viewModel.manualHoopSelectorState = .inProgress
                 }
@@ -333,7 +345,7 @@ extension ContentView {
                 closeButton
             }
             .overlay(alignment: .topTrailing) {
-                if !viewModel.setupStateModel.hoopDetected {
+                if viewModel.manualHoopSelectorState != .done {
                     manualHoopSelectionButtons
                 }
             }
@@ -401,7 +413,7 @@ extension ContentView {
                 closeButton
             }
             .overlay(alignment: .topTrailing) {
-                if !viewModel.setupStateModel.hoopDetected {
+                if viewModel.manualHoopSelectorState != .done {
                     manualHoopSelectionButtons
                 }
             }

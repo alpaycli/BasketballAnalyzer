@@ -10,6 +10,7 @@ import UIKit
 enum AreaSelectorState {
     case none
     case inProgress
+    case set
     case done
 }
 

@@ -1,5 +1,5 @@
 //
-//  SummaryView.swift
+//  SwiftUIView.swift
 //  BasketballAnalyzer
 //
 //  Created by Alpay Calalli on 05.02.25.

@@ -40,18 +40,20 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: ContentAnalysisViewController, context: Context) {
-        print("updateUIViewController updated")
+        print("updateUIViewController updated", viewModel.manualHoopSelectorState)
 //        if uiViewController.delegate == nil {
 //            uiViewController.delegate = context.coordinator
 //        }
         
         switch viewModel.manualHoopSelectorState {
-        case .none:
+        case .none, .done:
+            uiViewController.boardBoundingBox.isHidden = false
             uiViewController.manualHoopAreaSelectorView.isHidden = true
         case .inProgress:
             uiViewController.manualHoopAreaSelectorView.isHidden = false
-        case .done:
+        case .set:
             uiViewController.setHoopRegion()
+            viewModel.manualHoopSelectorState = .done
 //            DispatchQueue.main.async {
 //                viewModel.manualHoopSelectorState = .none
 //            }
@@ -124,7 +126,7 @@ class ContentAnalysisViewController: UIViewController {
     
     private var cameraViewController = CameraViewController()
     private var trajectoryView = TrajectoryView()
-    private let boardBoundingBox = BoundingBoxView()
+    let boardBoundingBox = BoundingBoxView()
     private let playerBoundingBox = BoundingBoxView()
     private let jointSegmentView = JointSegmentView()
     
@@ -132,11 +134,6 @@ class ContentAnalysisViewController: UIViewController {
     private var hoopRegion: CGRect = .zero {
         didSet {
             hoopSafeAreaView = UIView(frame: hoopRegion.inset(by: .init(top: -100, left: -100, bottom: -50, right: -100)))
-            hoopSafeAreaView.backgroundColor = UIColor(.red.opacity(0.4))
-            print("hoopSafeAreaView frame", hoopSafeAreaView.frame)
-            hoopSafeAreaView.isHidden = false
-            view.addSubview(hoopSafeAreaView)
-            view.bringSubviewToFront(hoopSafeAreaView)
         }
     }
     private var hoopSafeAreaView = UIView(frame: .zero)
@@ -153,7 +150,7 @@ class ContentAnalysisViewController: UIViewController {
     
     // MARK: - States
     
-    private var hoopDetected = false
+    #warning("lazimsizdi, setup statede track olunur onsuz")
     private var playerDetected = false
 
     private var setupComplete = false
@@ -170,7 +167,7 @@ class ContentAnalysisViewController: UIViewController {
     private var playerStats = PlayerStats()
     private var lastShotMetrics = ShotMetrics()
     
-    var v = UIView()
+    // MARK: - Helpers for UIViewControllerRepresentable
     
     // MARK: - Life Cycle
     
@@ -221,12 +218,15 @@ class ContentAnalysisViewController: UIViewController {
     }
     
     func setHoopRegion() {
+        self.boardBoundingBox.reset()
+        
         let selectedArea = manualHoopAreaSelectorView.getSelectedArea()
         self.hoopRegion = selectedArea
         updateBoundingBox(boardBoundingBox, withRect: selectedArea)
+        boardBoundingBox.borderColor = .green
         manualHoopAreaSelectorView.isHidden = true
 
-        if let recordedVideoSource {
+        if recordedVideoSource != nil {
             cameraViewController.restartVideo()
 //            cameraViewController.videoRenderView.player?.replaceCurrentItem(with: .init(asset: recordedVideoSource))
 //            cameraViewController.stopVideoPlayer()
@@ -372,7 +372,7 @@ class ContentAnalysisViewController: UIViewController {
 extension ContentAnalysisViewController {
     func cameraVCDelegateAction(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) {
         // video camera actions
-        if hoopRegion.isEmpty {
+        if hoopRegion.isEmpty, viewModel.manualHoopSelectorState == .none {
             delegate?.showSetupGuide("Detecting Hoop")
             do {
                 try detectBoard(controller, buffer, orientation)
@@ -464,6 +464,11 @@ extension ContentAnalysisViewController {
         boardBoundingBox.borderCornerSize = 0
         boardBoundingBox.backgroundOpacity = 0.45
         boardBoundingBox.isHidden = true
+        
+        let interaction = UIContextMenuInteraction(delegate: self)
+        boardBoundingBox.addInteraction(interaction)
+        boardBoundingBox.isUserInteractionEnabled = true
+        
         view.addSubview(boardBoundingBox)
         view.bringSubviewToFront(boardBoundingBox)
     }
@@ -697,8 +702,6 @@ extension ContentAnalysisViewController {
             }
         }
          
-        // > asagida olmaq demekdir
-        // < yuxarida olmaq demekdir
         if let _ = trajectoryPoints.first(where: { hoopRegion.contains($0) }) {
             if isStartPointOnLeftSideOfHoop,
                let oppositeSidePoint = trajectoryPoints.first(where: { $0.x > hoopRegion.maxX }),
@@ -761,6 +764,14 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
 //            }
         case is GameManager.TrackThrowsState:
             trajectoryView.roi = cameraViewController.viewRectForVisionRect(.init(x: 0, y: 0.5, width: 1, height: 0.5))
+            
+            // once it's entered to track throw state
+            // trajectory view seems to become on top of boardbounding box
+            // which leads to not detection of tap gestures
+            //
+            // happens when playing video not live camera
+            // don't have time to debug it too, will see
+            view.bringSubviewToFront(boardBoundingBox)
         case is GameManager.DetectedBoardState:
 //            setupStage =  .setupComplete
 //            statusLabel.text = "Board Detected"
@@ -872,3 +883,27 @@ struct RPPreviewView: UIViewControllerRepresentable {
         }
     }
 }
+
+extension ContentAnalysisViewController: UIContextMenuInteractionDelegate {
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
+        UIContextMenuConfiguration(
+            identifier: nil,
+            previewProvider: nil,
+            actionProvider: { suggestedActions in
+                let editAction = UIAction(
+                    title: NSLocalizedString("Edit Hoop",comment: ""),
+                    image: UIImage(systemName: "pencil")
+                ) { action in
+                    self.viewModel.manualHoopSelectorState = .inProgress
+                    self.boardBoundingBox.isHidden = true
+                }
+                
+                return UIMenu(title: "", children: [editAction])
+            }
+        )
+    }
+}
+
+//gamestage <_TtCC18BasketballAnalyzer11GameManager18DetectedBoardState: 0x301a75f60>
+//gamestage <_TtCC18BasketballAnalyzer11GameManager20DetectingPlayerState: 0x301a79020>
+//detect board error VNContoursDetector was given zero-dimensioned image (0 x 0)

@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>569</string>
+					<string>574</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>568</string>
+					<string>573</string>
 					<key>Timestamp</key>
-					<string>760366403.326317</string>
+					<string>760457264.841184</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -59,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>161</string>
+					<string>169</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>160</string>
+					<string>168</string>
 					<key>Timestamp</key>
-					<string>760366333.678363</string>
+					<string>760456907.418358</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -106,13 +106,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>166</string>
+					<string>163</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>165</string>
+					<string>162</string>
 					<key>Timestamp</key>
-					<string>760366403.326269</string>
+					<string>760457264.841194</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -151,13 +151,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>808</string>
+					<string>819</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>807</string>
+					<string>818</string>
 					<key>Timestamp</key>
-					<string>760366403.326304</string>
+					<string>760457264.841162</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -183,6 +183,51 @@
 				<string>            }
             boardBoundingBox.isHidden = true
             
+</string>
+			</dict>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>495</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>494</string>
+					<key>Timestamp</key>
+					<string>760457264.841204</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>Again/ContentAnalysisView.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>            self.trajectoryView.frame = controller.viewRectForVisionRect(normalizedFrame)
+</string>
+				<key>leading</key>
+				<string>            let normalizedFrame = CGRect(x: 0, y: 0, width: 1, height: 1)
+            self.jointSegmentView.frame = controller.viewRectForVisionRect(normalizedFrame)
+</string>
+				<key>trailing</key>
+				<string>        }
+        // Perform the trajectory request in a separate dispatch queue.
+        trajectoryQueue.async {
 </string>
 			</dict>
 			<key>type</key>
