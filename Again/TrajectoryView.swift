@@ -55,7 +55,7 @@ class TrajectoryView: UIView, AnimatedTransitioning {
         return false
     }
     
-    var finalBagLocation: CGPoint {
+    var finalBallLocation: CGPoint {
         // Normalized final bag location
         let bagLocation = fullTrajectory.currentPoint
         let flipVertical = CGAffineTransform.verticalFlip

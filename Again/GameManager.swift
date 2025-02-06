@@ -77,16 +77,17 @@ class GameManager {
             InactiveState([SetupCameraState.self]),
             SetupCameraState([DetectingBoardState.self]),
             DetectingBoardState([DetectedBoardState.self]),
-            DetectedBoardState([DetectingPlayerState.self]),
+            DetectedBoardState([DetectingPlayerState.self, TrackThrowsState.self]),
             DetectingPlayerState([DetectedPlayerState.self]),
             DetectedPlayerState([TrackThrowsState.self]),
-            TrackThrowsState([ThrowCompletedState.self, ShowSummaryState.self]),
+            TrackThrowsState([ThrowCompletedState.self, ShowSummaryState.self, DetectingBoardState.self]),
             ThrowCompletedState([ShowSummaryState.self, TrackThrowsState.self]),
             ShowSummaryState([DetectingPlayerState.self])
         ]
         // Any state besides Inactive can be returned to Inactive.
         for state in states where !(state is InactiveState) {
             state.addValidNextState(InactiveState.self)
+//            states[0].addValidNextState(state.self)e
         }
         // Create state machine.
         stateMachine = GKStateMachine(states: states)

@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>574</string>
+					<string>595</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>573</string>
+					<string>594</string>
 					<key>Timestamp</key>
-					<string>760457264.841184</string>
+					<string>760570054.887313</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -106,13 +106,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>163</string>
+					<string>158</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>162</string>
+					<string>157</string>
 					<key>Timestamp</key>
-					<string>760457264.841194</string>
+					<string>760570054.887345</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -151,13 +151,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>819</string>
+					<string>832</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>818</string>
+					<string>831</string>
 					<key>Timestamp</key>
-					<string>760457264.841162</string>
+					<string>760570054.887329</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -196,13 +196,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>495</string>
+					<string>516</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>494</string>
+					<string>515</string>
 					<key>Timestamp</key>
-					<string>760457264.841204</string>
+					<string>760570054.88736</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -228,6 +228,51 @@
 				<string>        }
         // Perform the trajectory request in a separate dispatch queue.
         trajectoryQueue.async {
+</string>
+			</dict>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>163</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>162</string>
+					<key>Timestamp</key>
+					<string>760570054.887267</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>Again/ContentAnalysisView.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>    private var lastShotMetrics = ShotMetrics()
+</string>
+				<key>leading</key>
+				<string>    
+    private var playerStats = PlayerStats()
+</string>
+				<key>trailing</key>
+				<string>    
+    // MARK: - Life Cycle
+    
 </string>
 			</dict>
 			<key>type</key>

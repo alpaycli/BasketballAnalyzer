@@ -299,11 +299,7 @@ extension ContentView {
         HStack {
             if viewModel.manualHoopSelectorState == .inProgress {
                 Button("Cancel") {
-                    if viewModel.isHoopPlaced {
-                        viewModel.manualHoopSelectorState = .done
-                    } else {
-                        viewModel.manualHoopSelectorState = .none
-                    }
+                    viewModel.manualHoopSelectorState = .none
                 }
                 .buttonStyle(.borderless)
                 .tint(.green)
@@ -345,7 +341,7 @@ extension ContentView {
                 closeButton
             }
             .overlay(alignment: .topTrailing) {
-                if viewModel.manualHoopSelectorState != .done {
+                if !viewModel.isHoopPlaced || viewModel.manualHoopSelectorState == .inProgress {
                     manualHoopSelectionButtons
                 }
             }
@@ -413,7 +409,7 @@ extension ContentView {
                 closeButton
             }
             .overlay(alignment: .topTrailing) {
-                if viewModel.manualHoopSelectorState != .done {
+                if !viewModel.isHoopPlaced || viewModel.manualHoopSelectorState == .inProgress {
                     manualHoopSelectionButtons
                 }
             }

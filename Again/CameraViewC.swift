@@ -187,10 +187,6 @@ class CameraViewController: UIViewController {
         ])
     }
     
-    func stopVideoPlayer() {
-        videoRenderView.player = nil
-    }
-    
     private var videoPlayer: AVPlayer? {
         return videoRenderView?.player
     }
@@ -203,6 +199,11 @@ class CameraViewController: UIViewController {
     func pauseVideo() {
         videoPlayer?.pause()
         displayLink?.isPaused = true
+    }
+    
+    func restartVideo() async {
+        await videoPlayer?.seek(to: .zero)
+        playVideo()
     }
     
     func restartVideo() {
