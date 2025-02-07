@@ -86,86 +86,153 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
+            Group {
+                if UIDevice.current.userInterfaceIdiom == .pad {
+                    padContent
+                } else if UIDevice.current.userInterfaceIdiom == .phone {
+                    phoneContent
+                    #warning("delete later")
+                }
+            }
+                .navigationDestination(item: $recordedVideoSource) { item in
+                    contentViewWithRecordedVideo(item)
+                        .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
+                }
+                .navigationDestination(isPresented: $isLiveCameraSelected) {
+                    contentViewWithLiveCamera
+                        .navigationTransition(.zoom(sourceID: "liveCameraZoom", in: namespace))
+                }
+                .onReceive(pub) { c in
+                    print("video ended in view", c.name.rawValue, c.name)
+                    isVideoEnded = true
+                    //                shotPaths = viewModel.playerStats?.shotPaths ?? []
+                }
+                .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
+                    switch result {
+                    case let .success(url):
+                        handleImportedVideoFileURL(url)
+                    case let .failure(error):
+                        print("failure", error.localizedDescription)
+                    }
+                })
+                .buttonStyle(.plain)
+            //            .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
+            //            .onChange(of: photo) { oldValue, newValue in
+            //                if let newValue {
+            //                    handlePhotoPickerSelection(newValue)
+            //                }
+            //            }
+        }
+    }
+}
+
+// MARK: - Content
+
+extension ContentView {
+    private var padContent: some View {
+        VStack {
+            HStack {
+                Spacer()
+                NavigationLink {
+                    InstructionsView()
+                } label : {
+                    Text("Show Guides")   
+                }
+                .font(.largeTitle)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.red)
+                .foregroundStyle(.white)
+                .fontWeight(.bold)
+                .padding()
+            }
+            Spacer()
+            
             VStack {
-                HStack {
-                    Spacer()
-                    Button("Show Guides") {
-                        
-                    }
-                    .font(.largeTitle)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .tint(.red)
-                     .foregroundStyle(.white)
-                     .fontWeight(.bold)
-                     .padding()
-                }
-                Spacer()
-                
-                VStack {
-                    Image(systemName: "square.and.arrow.up")
-                    Button("Upload video") { showFileImporter = true }
-                }
-                .frame(width: 280, height: 220)
-                .background(.gray, in: .rect(cornerRadius: 15))
-                .foregroundStyle(.white)
-                .fontWeight(.bold)
-                .font(.largeTitle)
-                
-                VStack {
-                    Image(systemName: "video")
-                    Button("Live Camera") {
-                        GameManager.shared.reset()
-                        GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
-                        
-                        isLiveCameraSelected = true
-                    }
-                }
-                .frame(width: 280, height: 220)
-                .background(.gray, in: .rect(cornerRadius: 15))
-                .foregroundStyle(.white)
-                .fontWeight(.bold)
-                .font(.largeTitle)
-                
-                Button("Test with a sample video") {
+                Image(systemName: "square.and.arrow.up")
+                Button("Upload video") { showFileImporter = true }
+            }
+            .frame(width: 280, height: 220)
+            .background(.gray, in: .rect(cornerRadius: 15))
+            .foregroundStyle(.white)
+            .fontWeight(.bold)
+            .font(.largeTitle)
+            
+            VStack {
+                Image(systemName: "video")
+                Button("Live Camera") {
+                    GameManager.shared.reset()
+                    GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
                     
+                    isLiveCameraSelected = true
                 }
-                .font(.title.smallCaps())
-                .fontDesign(.rounded)
-                .fontWeight(.bold)
-                .foregroundStyle(.blue)
-                .padding(.top)
+            }
+            .frame(width: 280, height: 220)
+            .background(.gray, in: .rect(cornerRadius: 15))
+            .foregroundStyle(.white)
+            .fontWeight(.bold)
+            .font(.largeTitle)
+            
+            Button("Test with a sample video") {
                 
+            }
+            .font(.title.smallCaps())
+            .fontDesign(.rounded)
+            .fontWeight(.bold)
+            .foregroundStyle(.blue)
+            .padding(.top)
+            
+            Spacer()
+        }
+    }
+    
+    private var phoneContent: some View {
+        VStack {
+            HStack {
                 Spacer()
-            }
-            .navigationDestination(item: $recordedVideoSource) { item in
-                contentViewWithRecordedVideo(item)
-                    .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
-            }
-            .navigationDestination(isPresented: $isLiveCameraSelected) {
-                contentViewWithLiveCamera
-                    .navigationTransition(.zoom(sourceID: "liveCameraZoom", in: namespace))
-            }
-            .onReceive(pub) { c in
-                print("video ended in view", c.name.rawValue, c.name)
-                isVideoEnded = true
-//                shotPaths = viewModel.playerStats?.shotPaths ?? []
-            }
-            .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
-                switch result {
-                case let .success(url):
-                    handleImportedVideoFileURL(url)
-                case let .failure(error):
-                    print("failure", error.localizedDescription)
+                NavigationLink {
+                    InstructionsView()
+                } label: {
+                    Text("Show Guides")
                 }
-            })
-            .buttonStyle(.plain)
-//            .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
-//            .onChange(of: photo) { oldValue, newValue in
-//                if let newValue {
-//                    handlePhotoPickerSelection(newValue)
-//                }
-//            }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.red)
+                .foregroundStyle(.white)
+                .fontWeight(.bold)
+                .padding()
+            }
+            Spacer()
+            
+            Button("Upload video", systemImage: "square.and.arrow.up") { showFileImporter = true }
+                .foregroundStyle(.white)
+                .fontWeight(.bold)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.gray)
+            
+            Button("Live Camera", systemImage: "video") {
+                GameManager.shared.reset()
+                GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
+                
+                isLiveCameraSelected = true
+            }
+            .foregroundStyle(.white)
+            .fontWeight(.bold)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            
+            
+            Button("Test with a sample video") {
+                
+            }
+            .font(.title.smallCaps())
+            .fontDesign(.rounded)
+            .fontWeight(.bold)
+            .foregroundStyle(.blue)
+            .padding(.top)
+            
+            Spacer()
         }
     }
 }

@@ -21,12 +21,12 @@ struct InstructionsView: View {
                             .font(.largeTitle)
                         
                         VStack(alignment: .leading) {
-                            Image("prefferedAngle1")
+                            Image("unprefferedAngle1")
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: 500)
                                 .clipShape(.rect(cornerRadius: 5))
-                                .redacted(reason: .placeholder)
+//                                .redacted(reason: .placeholder)
                             
                             Text("Bad Practices :")
                                 .font(.headline)
