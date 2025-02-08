@@ -217,6 +217,7 @@ class ContentAnalysisViewController: UIViewController {
         self.hoopRegion = selectedArea
         updateBoundingBox(boardBoundingBox, withRect: selectedArea)
         boardBoundingBox.borderColor = .green
+        boardBoundingBox.visionRect = cameraViewController.visionRectForViewRect(boardBoundingBox.frame)
         manualHoopAreaSelectorView.isHidden = true
 
         // Reset values
@@ -393,12 +394,21 @@ class ContentAnalysisViewController: UIViewController {
 extension ContentAnalysisViewController {
     func cameraVCDelegateAction(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) {
         // video camera actions
-        if hoopRegion.isEmpty, viewModel.manualHoopSelectorState == .none {
+        /* if hoopRegion.isEmpty, viewModel.manualHoopSelectorState == .none {
             delegate?.showSetupGuide("Detecting Hoop")
             do {
                 try detectBoard(controller, buffer, orientation)
             } catch {
                 print("detect board error", error.localizedDescription)
+            }
+        } */
+        
+        // It's needed for calculating the speed of the ball.
+        if gameManager.pointToMeterMultiplier.isNaN {
+            do {
+                try setPointToMeterMultiplier(controller, buffer, orientation)
+            } catch {
+                print("detect hoop contours error", error)
             }
         }
         
@@ -474,6 +484,33 @@ extension ContentAnalysisViewController {
                 
                 setupStateModel.hoopContoursDetected = true
                 gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
+            }
+        }
+    }
+    
+    private func setPointToMeterMultiplier(_ controller: CameraViewController, _ buffer: CMSampleBuffer, _ orientation: CGImagePropertyOrientation) throws {
+        let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
+        let contoursRequest = VNDetectContoursRequest()
+        contoursRequest.contrastAdjustment = 1.6 // the default contrast is 2.0 but in this case 1.6 gives us more reliable results
+        contoursRequest.regionOfInterest = boardBoundingBox.visionRect
+        try visionHandler.perform([contoursRequest])
+        if let result = contoursRequest.results?.first as? VNContoursObservation {
+            // Perform analysis of the top level contours in order to find board edge path and hole path.
+            let boardPath = result.normalizedPath
+            
+            DispatchQueue.main.sync {
+                // Save board region
+                hoopRegion = boardBoundingBox.frame
+                gameManager.boardRegion = boardBoundingBox.frame
+//                print(gameManager.boardRegion)
+                // Calculate board length based on the bounding box of the edge.
+                let edgeNormalizedBB = boardPath.boundingBox
+                // Convert normalized bounding box size to points.
+                let edgeSize = CGSize(width: edgeNormalizedBB.width * boardBoundingBox.frame.width,
+                                      height: edgeNormalizedBB.height * boardBoundingBox.frame.height)
+                
+                let hoopLength = hypot(edgeSize.width, edgeSize.height)
+                self.gameManager.pointToMeterMultiplier = GameConstants.hoopLength / Double(hoopLength)
             }
         }
     }
@@ -916,7 +953,3 @@ extension ContentAnalysisViewController: UIContextMenuInteractionDelegate {
         )
     }
 }
-
-//gamestage <_TtCC18BasketballAnalyzer11GameManager18DetectedBoardState: 0x301a75f60>
-//gamestage <_TtCC18BasketballAnalyzer11GameManager20DetectingPlayerState: 0x301a79020>
-//detect board error VNContoursDetector was given zero-dimensioned image (0 x 0)

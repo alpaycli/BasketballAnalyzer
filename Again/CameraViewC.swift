@@ -155,6 +155,16 @@ class CameraViewController: UIViewController {
         }
         return viewRect
     }
+    
+    func visionRectForViewRect(_ viewRect: CGRect) -> CGRect {
+        let visionRect = if cameraFeedSession != nil {
+            cameraFeedView.normalizedRectConverted(fromViewRect: viewRect)
+        } else {
+            videoRenderView.normalizedRectConverted(fromViewRect: viewRect)
+        }
+        
+        return visionRect.applying(CGAffineTransform.verticalFlip)
+    }
 
     // This helper function is used to convert points returned by Vision to the video content rect coordinates.
     //

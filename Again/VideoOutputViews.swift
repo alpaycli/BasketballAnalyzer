@@ -30,6 +30,10 @@ class CameraFeedView: UIView, NormalizedGeometryConverting {
     func viewRectConverted(fromNormalizedContentsRect normalizedRect: CGRect) -> CGRect {
         return previewLayer.layerRectConverted(fromMetadataOutputRect: normalizedRect)
     }
+    
+    func normalizedRectConverted(fromViewRect viewRect: CGRect) -> CGRect {
+        previewLayer.metadataOutputRectConverted(fromLayerRect: viewRect)
+    }
 
     func viewPointConverted(fromNormalizedContentsPoint normalizedPoint: CGPoint) -> CGPoint {
         return previewLayer.layerPointConverted(fromCaptureDevicePoint: normalizedPoint)
@@ -71,6 +75,19 @@ class VideoRenderView: UIView, NormalizedGeometryConverting {
                           height: normalizedRect.height * videoRect.height)
         let convertedRect = CGRect(origin: origin, size: size)
         return convertedRect.integral
+    }
+    
+    func normalizedRectConverted(fromViewRect viewRect: CGRect) -> CGRect {
+        let videoRect = renderLayer.videoRect
+        let origin = CGPoint(
+            x: (viewRect.origin.x - videoRect.origin.x) / videoRect.width,
+            y: (viewRect.origin.y - videoRect.origin.y) / videoRect.height
+        )
+        let size = CGSize(
+            width: viewRect.width / videoRect.width,
+            height: viewRect.height / videoRect.height
+        )
+        return CGRect(origin: origin, size: size)
     }
 
     func viewPointConverted(fromNormalizedContentsPoint normalizedPoint: CGPoint) -> CGPoint {

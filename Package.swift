@@ -30,8 +30,8 @@ let package = Package(
                 .landscapeRight
             ],
             capabilities: [
-                .camera(purposeString: "I need it."),
-                .photoLibraryAdd(purposeString: "We need")
+                .camera(purposeString: "App uses the camera to perform analysis."),
+                .photoLibraryAdd(purposeString: "App gives option to save analysis video to your photo library.")
             ]
         )
     ],
