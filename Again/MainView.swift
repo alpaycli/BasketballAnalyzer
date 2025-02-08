@@ -57,6 +57,7 @@ struct ContentView: View {
     
     @State private var shotPaths: [CGPath] = []
     
+    @State private var isTestMode = false
     @State private var recordedVideoSource: AVAsset?
     @State private var isLiveCameraSelected = false
     
@@ -94,28 +95,32 @@ struct ContentView: View {
                     #warning("delete later")
                 }
             }
-                .navigationDestination(item: $recordedVideoSource) { item in
-                    contentViewWithRecordedVideo(item)
-                        .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
+            .navigationDestination(isPresented: $isTestMode) {
+                contentViewWithRecordedVideo(isTestMode: isTestMode)
+                    .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
+            }
+            .navigationDestination(item: $recordedVideoSource) { item in
+                contentViewWithRecordedVideo(item)
+                    .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
+            }
+            .navigationDestination(isPresented: $isLiveCameraSelected) {
+                contentViewWithLiveCamera
+                    .navigationTransition(.zoom(sourceID: "liveCameraZoom", in: namespace))
+            }
+            .onReceive(pub) { c in
+                print("video ended in view", c.name.rawValue, c.name)
+                isVideoEnded = true
+                //                shotPaths = viewModel.playerStats?.shotPaths ?? []
+            }
+            .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
+                switch result {
+                case let .success(url):
+                    handleImportedVideoFileURL(url)
+                case let .failure(error):
+                    print("failure", error.localizedDescription)
                 }
-                .navigationDestination(isPresented: $isLiveCameraSelected) {
-                    contentViewWithLiveCamera
-                        .navigationTransition(.zoom(sourceID: "liveCameraZoom", in: namespace))
-                }
-                .onReceive(pub) { c in
-                    print("video ended in view", c.name.rawValue, c.name)
-                    isVideoEnded = true
-                    //                shotPaths = viewModel.playerStats?.shotPaths ?? []
-                }
-                .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
-                    switch result {
-                    case let .success(url):
-                        handleImportedVideoFileURL(url)
-                    case let .failure(error):
-                        print("failure", error.localizedDescription)
-                    }
-                })
-                .buttonStyle(.plain)
+            })
+            .buttonStyle(.plain)
             //            .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
             //            .onChange(of: photo) { oldValue, newValue in
             //                if let newValue {
@@ -174,7 +179,8 @@ extension ContentView {
             .font(.largeTitle)
             
             Button("Test with a sample video") {
-                
+                GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
+                isTestMode = true
             }
             .font(.title.smallCaps())
             .fontDesign(.rounded)
@@ -224,7 +230,8 @@ extension ContentView {
             
             
             Button("Test with a sample video") {
-                
+                GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
+                isTestMode = true
             }
             .font(.title.smallCaps())
             .fontDesign(.rounded)
@@ -302,10 +309,13 @@ extension ContentView {
         Button("Close", systemImage: "xmark") {
             recordedVideoSource = nil
             isLiveCameraSelected = false
+            isTestMode = false
             
             shotPaths = []
             viewModel.reset()
             isVideoEnded = false
+            
+            GameManager.shared.stateMachine.enter(GameManager.InactiveState.self)
         }
         .padding()
         .labelStyle(.iconOnly)
@@ -391,8 +401,8 @@ extension ContentView {
 // MARK: - Contents
 
 extension ContentView {
-    private func contentViewWithRecordedVideo(_ item: AVAsset) -> some View {
-        ContentAnalysisView(recordedVideoSource: item, viewModel: viewModel)
+    private func contentViewWithRecordedVideo(_ item: AVAsset? = nil, isTestMode: Bool = false) -> some View {
+        ContentAnalysisView(recordedVideoSource: item, isTestMode: isTestMode, viewModel: viewModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .top) {
@@ -460,7 +470,7 @@ extension ContentView {
     }
     
     private var contentViewWithLiveCamera: some View {
-        ContentAnalysisView(recordedVideoSource: nil, viewModel: viewModel)
+        ContentAnalysisView(recordedVideoSource: nil, isTestMode: false, viewModel: viewModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .top) {

@@ -24,15 +24,17 @@ struct SetupStateModel {
 
 struct ContentAnalysisView: UIViewControllerRepresentable {
     let recordedVideoSource: AVAsset?
+    let isTestMode: Bool
     @Bindable var viewModel: ContentViewModel
     
     func makeUIViewController(context: Context) -> ContentAnalysisViewController {
         let vc = ContentAnalysisViewController()
         vc.setCameraVCDelegate(context.coordinator)
         vc.delegate = context.coordinator
-        vc.recordedVideoSource = recordedVideoSource
         vc.viewModel = viewModel
-
+        
+        vc.isTestMode = isTestMode
+        vc.recordedVideoSource = isTestMode ? getTestVideo() : recordedVideoSource
         
         context.coordinator.vc = vc
         
@@ -114,6 +116,7 @@ class ContentAnalysisViewController: UIViewController {
     weak var delegate: ContentAnalysisVCDelegate?
     private let gameManager = GameManager.shared
     var viewModel: ContentViewModel!
+    var isTestMode: Bool!
     
     var recordedVideoSource: AVAsset?
     
@@ -171,14 +174,19 @@ class ContentAnalysisViewController: UIViewController {
         setupBoardBoundingBox()
         setUIElements()
         configureView()
+        print("stage", gameManager.stateMachine.currentState)
+        
+//        if isTestMode {
+//            testModePresetHoop()
+//        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
         trajectoryView.roi = cameraViewController.viewRectForVisionRect(.init(x: 0, y: 0.5, width: 1, height: 0.5))
-//        let newView = UIView(frame: trajectoryView.roi)
-//        newView.backgroundColor = UIColor(Color.cyan.opacity(0.3))
-//        view.addSubview(newView)
-//        view.bringSubviewToFront(manualHoopAreaSelectorView)
+        
+        if isTestMode {
+            testModePresetHoop()
+        }
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -229,6 +237,21 @@ class ContentAnalysisViewController: UIViewController {
         
         await cameraViewController.restartVideo()
         
+        self.gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
+    }
+    
+    /// For testing mode to speed up the judgement process.
+    func testModePresetHoop() {
+        // (0.24952290076335876, 0.5932993803922153, 0.04818700834085016, 0.09838847774282367)
+        let visionRect = CGRect(x: 0.24952290076335876, y: 0.5932993803922153, width: 0.04818700834085016, height: 0.09838847774282367)
+        let selectedArea = cameraViewController.viewRectForVisionRect(visionRect)
+        
+        self.hoopRegion = selectedArea
+        updateBoundingBox(boardBoundingBox, withRect: selectedArea)
+        boardBoundingBox.borderColor = .green
+        boardBoundingBox.visionRect = cameraViewController.visionRectForViewRect(boardBoundingBox.frame)
+        manualHoopAreaSelectorView.isHidden = true
+        print("keine", gameManager.stateMachine.currentState)
         self.gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
     }
     
@@ -404,7 +427,7 @@ extension ContentAnalysisViewController {
         } */
         
         // It's needed for calculating the speed of the ball.
-        if gameManager.pointToMeterMultiplier.isNaN {
+        if gameManager.pointToMeterMultiplier.isNaN, !hoopRegion.isEmpty {
             do {
                 try setPointToMeterMultiplier(controller, buffer, orientation)
             } catch {
@@ -953,3 +976,11 @@ extension ContentAnalysisViewController: UIContextMenuInteractionDelegate {
         )
     }
 }
+
+/*
+ boardBoundingBox.viewRect (251.0, 121.16667175292969, 33.666656494140625, 38.66667175292969)
+ boardBoundingBox.visionRect (0.24952290076335876, 0.5932993803922153, 0.04818700834085016, 0.09838847774282367)
+ 
+ boardBoundingBox.viewRect (348.5, 364.5, 60.0, 85.0)
+ boardBoundingBox.visionRect (0.2532703488372093, 0.5859173126614987, 0.04360465116279072, 0.10981912144702843)
+ */

@@ -170,3 +170,14 @@ struct GameStateChangeNotification {
 }
 
 typealias GameStateChangeObserverViewController = UIViewController & GameStateChangeObserver
+
+func getTestVideo() -> AVAsset? {
+    guard let path = Bundle.main.path(forResource: "testVideo", ofType:"mp4") else {
+        debugPrint("video.mp4 not found")
+        return nil
+    }
+    let recordedVideo = AVAsset(url: URL(fileURLWithPath: path))
+    print("GETTING TEST VIDEO")
+    
+    return recordedVideo
+}
