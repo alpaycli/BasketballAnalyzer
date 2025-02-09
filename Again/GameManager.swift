@@ -37,10 +37,10 @@ class GameManager {
     class SetupCameraState: State {
     }
     
-    class DetectingBoardState: State {
+    class DetectingHoopState: State {
     }
     
-    class DetectedBoardState: State {
+    class DetectedHoopState: State {
     }
 
     class DetectingPlayerState: State {
@@ -61,7 +61,7 @@ class GameManager {
     fileprivate var activeObservers = [UIViewController: NSObjectProtocol]()
     
     let stateMachine: GKStateMachine
-    var boardRegion = CGRect.null
+    var hoopRegion = CGRect.null
     var holeRegion = CGRect.null
     var recordedVideoSource: AVAsset?
     var playerStats = PlayerStats()
@@ -75,12 +75,12 @@ class GameManager {
         // Possible states with valid next states.
         let states = [
             InactiveState([SetupCameraState.self]),
-            SetupCameraState([DetectingBoardState.self]),
-            DetectingBoardState([DetectedBoardState.self]),
-            DetectedBoardState([DetectingPlayerState.self, TrackThrowsState.self]),
+            SetupCameraState([DetectingHoopState.self]),
+            DetectingHoopState([DetectedHoopState.self]),
+            DetectedHoopState([DetectingPlayerState.self, TrackThrowsState.self]),
             DetectingPlayerState([DetectedPlayerState.self]),
             DetectedPlayerState([TrackThrowsState.self]),
-            TrackThrowsState([ThrowCompletedState.self, ShowSummaryState.self, DetectingBoardState.self]),
+            TrackThrowsState([ThrowCompletedState.self, ShowSummaryState.self, DetectingHoopState.self]),
             ThrowCompletedState([ShowSummaryState.self, TrackThrowsState.self]),
             ShowSummaryState([DetectingPlayerState.self])
         ]
@@ -95,7 +95,7 @@ class GameManager {
     
     func reset() {
         // Reset all stored values
-        boardRegion = .null
+        hoopRegion = .null
         recordedVideoSource = nil
         playerStats = PlayerStats()
         pointToMeterMultiplier = .nan

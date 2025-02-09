@@ -24,7 +24,7 @@ struct LongPressButton: View {
   var body: some View {
       VStack(spacing: 0) {
               Text("Hold to Finish")
-                  .foregroundStyle(.secondary)
+                  .foregroundStyle(.white)
                   .fontDesign(.serif)
                   .transition(.opacity)
                   .opacity(showText ? 1 : 0)

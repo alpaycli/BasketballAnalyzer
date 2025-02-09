@@ -536,7 +536,7 @@ extension ContentView {
             }
             .overlay(alignment: .bottomTrailing) {
                 // finish game button
-                if !viewModel.isFinishButtonPressed {
+                if !viewModel.isFinishButtonPressed, viewModel.isHoopPlaced {
                     LongPressButton(duration: 0.4) {
                         viewModel.isFinishButtonPressed = true
                         shotPaths = viewModel.playerStats?.shotPaths ?? []

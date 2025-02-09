@@ -9,9 +9,6 @@ import Vision
 import Foundation
 
 struct GameConstants {
-    static let maxShots = 4
-    static let newGameTimer = 5
-    static let boardLength = 1.22
     static let hoopLength = 0.61
     static let trajectoryLength = 15
     static let maxPoseObservations = 45

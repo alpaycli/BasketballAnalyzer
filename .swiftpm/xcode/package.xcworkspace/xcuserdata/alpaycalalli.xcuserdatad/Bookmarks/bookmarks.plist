@@ -10,15 +10,15 @@
 				<key>location-parameters</key>
 				<dict>
 					<key>EndingColumnNumber</key>
-					<string>16</string>
+					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>635</string>
+					<string>596</string>
 					<key>StartingColumnNumber</key>
-					<string>16</string>
+					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>635</string>
+					<string>595</string>
 					<key>Timestamp</key>
-					<string>760821018.458698</string>
+					<string>760823527.337886</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -34,15 +34,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string></string>
+				<string>                
+</string>
 				<key>leading</key>
 				<string>                trajectoryView.uniquePoints.append(contentsOf: viewPoints)
                 self.trajectoryView.performTransition(.fadeIn, duration: 0.25)
-                </string>
+</string>
 				<key>trailing</key>
-				<string>
-                self.noObservationFrameCount = 0
+				<string>                self.noObservationFrameCount = 0
             }
+        }
 </string>
 			</dict>
 			<key>title</key>
@@ -64,7 +65,7 @@
 					<key>StartingLineNumber</key>
 					<string>131</string>
 					<key>Timestamp</key>
-					<string>760779749.141879</string>
+					<string>760823546.569272</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -111,7 +112,7 @@
 					<key>StartingLineNumber</key>
 					<string>160</string>
 					<key>Timestamp</key>
-					<string>760779602.999956</string>
+					<string>760823527.337814</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -150,13 +151,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>580</string>
+					<string>540</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>579</string>
+					<string>539</string>
 					<key>Timestamp</key>
-					<string>760780235.637776</string>
+					<string>760823527.337909</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -201,7 +202,7 @@
 					<key>StartingLineNumber</key>
 					<string>165</string>
 					<key>Timestamp</key>
-					<string>760779602.99994</string>
+					<string>760823527.337865</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>

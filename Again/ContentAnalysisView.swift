@@ -124,7 +124,7 @@ class ContentAnalysisViewController: UIViewController {
     
     private var cameraViewController = CameraViewController()
     private var trajectoryView = TrajectoryView()
-    let boardBoundingBox = BoundingBoxView()
+    let hoopBoundingBox = BoundingBoxView()
     private let playerBoundingBox = BoundingBoxView()
     private let jointSegmentView = JointSegmentView()
     
@@ -171,7 +171,7 @@ class ContentAnalysisViewController: UIViewController {
         super.viewDidLoad()
         setupHoopDetectionRequest()
         startObservingStateChanges()
-        setupBoardBoundingBox()
+        setupHoopBoundingBox()
         setUIElements()
         configureView()
         print("stage", gameManager.stateMachine.currentState)
@@ -222,13 +222,13 @@ class ContentAnalysisViewController: UIViewController {
     }
     
     func setHoopRegion() async {
-        self.boardBoundingBox.reset()
+        self.hoopBoundingBox.reset()
         
         let selectedArea = manualHoopAreaSelectorView.getSelectedArea()
         self.hoopRegion = selectedArea
-        updateBoundingBox(boardBoundingBox, withRect: selectedArea)
-        boardBoundingBox.borderColor = .green
-        boardBoundingBox.visionRect = cameraViewController.visionRectForViewRect(boardBoundingBox.frame)
+        updateBoundingBox(hoopBoundingBox, withRect: selectedArea)
+        hoopBoundingBox.borderColor = .green
+        hoopBoundingBox.visionRect = cameraViewController.visionRectForViewRect(hoopBoundingBox.frame)
         manualHoopAreaSelectorView.isHidden = true
 
         // Reset values
@@ -240,7 +240,7 @@ class ContentAnalysisViewController: UIViewController {
         
         await cameraViewController.restartVideo()
         
-        self.gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
+        self.gameManager.stateMachine.enter(GameManager.DetectedHoopState.self)
     }
     
     /// For testing mode to speed up the judgement process.
@@ -250,16 +250,16 @@ class ContentAnalysisViewController: UIViewController {
         let selectedArea = cameraViewController.viewRectForVisionRect(visionRect)
         
         self.hoopRegion = selectedArea
-        updateBoundingBox(boardBoundingBox, withRect: selectedArea)
-        boardBoundingBox.borderColor = .green
-        boardBoundingBox.visionRect = cameraViewController.visionRectForViewRect(boardBoundingBox.frame)
+        updateBoundingBox(hoopBoundingBox, withRect: selectedArea)
+        hoopBoundingBox.borderColor = .green
+        hoopBoundingBox.visionRect = cameraViewController.visionRectForViewRect(hoopBoundingBox.frame)
         manualHoopAreaSelectorView.isHidden = true
         print("keine", gameManager.stateMachine.currentState)
-        self.gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
+        self.gameManager.stateMachine.enter(GameManager.DetectedHoopState.self)
     }
     
     func cancelManualHoopSelectionAction() async {
-        boardBoundingBox.isHidden = false
+        hoopBoundingBox.isHidden = false
         manualHoopAreaSelectorView.isHidden = true
         
         // Reset values
@@ -271,9 +271,9 @@ class ContentAnalysisViewController: UIViewController {
         
         await cameraViewController.restartVideo()
         
-        if hoopRegion.isEmpty == false && gameManager.stateMachine.currentState is GameManager.DetectingBoardState {
+        if hoopRegion.isEmpty == false && gameManager.stateMachine.currentState is GameManager.DetectingHoopState {
             // there is already a setuped hoop
-            gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
+            gameManager.stateMachine.enter(GameManager.DetectedHoopState.self)
         }
     }
     
@@ -281,7 +281,7 @@ class ContentAnalysisViewController: UIViewController {
         manualHoopAreaSelectorView.isHidden = false
         
         // Enter detecting hoop state
-        self.gameManager.stateMachine.enter(GameManager.DetectingBoardState.self)
+        self.gameManager.stateMachine.enter(GameManager.DetectingHoopState.self)
         
         // Pause video if there's any
         cameraViewController.pauseVideo()
@@ -381,7 +381,7 @@ class ContentAnalysisViewController: UIViewController {
         cameraViewController.endAppearanceTransition()
         cameraViewController.didMove(toParent: self)
         
-        view.bringSubviewToFront(boardBoundingBox)
+        view.bringSubviewToFront(hoopBoundingBox)
         view.bringSubviewToFront(playerBoundingBox)
         view.bringSubviewToFront(jointSegmentView)
         view.bringSubviewToFront(trajectoryView)
@@ -455,8 +455,8 @@ extension ContentAnalysisViewController {
 // MARK: - Detect hoop stuff
 
 extension ContentAnalysisViewController {
-    private func detectBoard(_ controller: CameraViewController, _ buffer: CMSampleBuffer, _ orientation: CGImagePropertyOrientation) throws {
-        // This is where we detect the board.
+    private func detectHoop(_ controller: CameraViewController, _ buffer: CMSampleBuffer, _ orientation: CGImagePropertyOrientation) throws {
+        // This is where we detect the hoop.
         let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
         try visionHandler.perform([viewModel.hoopDetectionRequest])
         var rect: CGRect?
@@ -466,52 +466,14 @@ extension ContentAnalysisViewController {
             let filteredResults = results
                 .filter { $0.confidence > 0.70 }
             
-            // Since the model is trained to detect only one object class (game board)
-            // there is no need to look at labels. If there is at least one result - we got the board.
             if !filteredResults.isEmpty {
                 visionRect = filteredResults[0].boundingBox
                 rect = controller.viewRectForVisionRect(visionRect)
             }
         }
-        updateBoundingBox(boardBoundingBox, withViewRect: rect, visionRect: visionRect)
-        // If rect is nil we need to keep looking for the board, otherwise check the board placement
-//        self.setupStage = (rect == nil) ? .detectingBoard : .detectingBoardPlacement
-        
-        try detectBoardContours(controller, buffer, orientation)
-    }
-    
-    private func detectBoardContours(_ controller: CameraViewController, _ buffer: CMSampleBuffer, _ orientation: CGImagePropertyOrientation) throws {
-        let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
-        let contoursRequest = VNDetectContoursRequest()
-        contoursRequest.contrastAdjustment = 1.6 // the default contrast is 2.0 but in this case 1.6 gives us more reliable results
-        contoursRequest.regionOfInterest = boardBoundingBox.visionRect
-        try visionHandler.perform([contoursRequest])
-        if let result = contoursRequest.results?.first as? VNContoursObservation {
-            // Perform analysis of the top level contours in order to find board edge path and hole path.
-            let boardPath = result.normalizedPath
-            
-            DispatchQueue.main.sync {
-                // Save board region
-                hoopRegion = boardBoundingBox.frame
-                gameManager.boardRegion = boardBoundingBox.frame
-//                print(gameManager.boardRegion)
-                // Calculate board length based on the bounding box of the edge.
-                let edgeNormalizedBB = boardPath.boundingBox
-                // Convert normalized bounding box size to points.
-                let edgeSize = CGSize(width: edgeNormalizedBB.width * boardBoundingBox.frame.width,
-                                      height: edgeNormalizedBB.height * boardBoundingBox.frame.height)
-                
-                let hoopLength = hypot(edgeSize.width, edgeSize.height)
-                self.gameManager.pointToMeterMultiplier = GameConstants.hoopLength / Double(hoopLength)
-
-                
-                let highlightPath = UIBezierPath(cgPath: boardPath)
-                boardBoundingBox.visionPath = highlightPath.cgPath
-                boardBoundingBox.borderColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0.199807363)
-                
-                setupStateModel.hoopContoursDetected = true
-                gameManager.stateMachine.enter(GameManager.DetectedBoardState.self)
-            }
+        updateBoundingBox(hoopBoundingBox, withViewRect: rect, visionRect: visionRect)
+        if rect != nil {
+            gameManager.stateMachine.enter(GameManager.DetectedHoopState.self)
         }
     }
     
@@ -519,22 +481,20 @@ extension ContentAnalysisViewController {
         let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
         let contoursRequest = VNDetectContoursRequest()
         contoursRequest.contrastAdjustment = 1.6 // the default contrast is 2.0 but in this case 1.6 gives us more reliable results
-        contoursRequest.regionOfInterest = boardBoundingBox.visionRect
+        contoursRequest.regionOfInterest = hoopBoundingBox.visionRect
         try visionHandler.perform([contoursRequest])
         if let result = contoursRequest.results?.first as? VNContoursObservation {
-            // Perform analysis of the top level contours in order to find board edge path and hole path.
-            let boardPath = result.normalizedPath
+            let hoopPath = result.normalizedPath
             
             DispatchQueue.main.sync {
-                // Save board region
-                hoopRegion = boardBoundingBox.frame
-                gameManager.boardRegion = boardBoundingBox.frame
-//                print(gameManager.boardRegion)
-                // Calculate board length based on the bounding box of the edge.
-                let edgeNormalizedBB = boardPath.boundingBox
+                // Save hoop region
+                hoopRegion = hoopBoundingBox.frame
+                gameManager.hoopRegion = hoopBoundingBox.frame
+                // Calculate hoop length based on the bounding box of the edge.
+                let edgeNormalizedBB = hoopPath.boundingBox
                 // Convert normalized bounding box size to points.
-                let edgeSize = CGSize(width: edgeNormalizedBB.width * boardBoundingBox.frame.width,
-                                      height: edgeNormalizedBB.height * boardBoundingBox.frame.height)
+                let edgeSize = CGSize(width: edgeNormalizedBB.width * hoopBoundingBox.frame.width,
+                                      height: edgeNormalizedBB.height * hoopBoundingBox.frame.height)
                 
                 let hoopLength = hypot(edgeSize.width, edgeSize.height)
                 self.gameManager.pointToMeterMultiplier = GameConstants.hoopLength / Double(hoopLength)
@@ -542,20 +502,20 @@ extension ContentAnalysisViewController {
         }
     }
 
-    private func setupBoardBoundingBox() {
-        boardBoundingBox.borderColor = #colorLiteral(red: 1, green: 0.5763723254, blue: 0, alpha: 1)
-        boardBoundingBox.borderWidth = 2
-        boardBoundingBox.borderCornerRadius = 4
-        boardBoundingBox.borderCornerSize = 0
-        boardBoundingBox.backgroundOpacity = 0.45
-        boardBoundingBox.isHidden = true
+    private func setupHoopBoundingBox() {
+        hoopBoundingBox.borderColor = #colorLiteral(red: 1, green: 0.5763723254, blue: 0, alpha: 1)
+        hoopBoundingBox.borderWidth = 2
+        hoopBoundingBox.borderCornerRadius = 4
+        hoopBoundingBox.borderCornerSize = 0
+        hoopBoundingBox.backgroundOpacity = 0.45
+        hoopBoundingBox.isHidden = true
         
         let interaction = UIContextMenuInteraction(delegate: self)
-        boardBoundingBox.addInteraction(interaction)
-        boardBoundingBox.isUserInteractionEnabled = true
+        hoopBoundingBox.addInteraction(interaction)
+        hoopBoundingBox.isUserInteractionEnabled = true
         
-        view.addSubview(boardBoundingBox)
-        view.bringSubviewToFront(boardBoundingBox)
+        view.addSubview(hoopBoundingBox)
+        view.bringSubviewToFront(hoopBoundingBox)
     }
     
     private func setupHoopDetectionRequest() {
@@ -813,16 +773,13 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             trajectoryView.roi = cameraViewController.viewRectForVisionRect(.init(x: 0, y: 0.5, width: 1, height: 0.5))
             
             // once it's entered to track throw state
-            // trajectory view seems to become on top of boardbounding box
+            // trajectory view seems to become on top of hoopbounding box
             // which leads to not detection of tap gestures
             //
             // happens when playing video not live camera
             // don't have time to debug it too, will see
-            view.bringSubviewToFront(boardBoundingBox)
-        case is GameManager.DetectedBoardState:
-//            setupStage =  .setupComplete
-//            statusLabel.text = "Board Detected"
-//            statusLabel.performTransitions([.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1.5) {
+            view.bringSubviewToFront(hoopBoundingBox)
+        case is GameManager.DetectedHoopState:
             delegate?.showSetupGuide("Detecting Player")
             setupStateModel.hoopDetected = true
             delegate?.updateSetupState(setupStateModel)
@@ -834,11 +791,7 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             }
         case is GameManager.ThrowCompletedState:
             delegate?.showLastShowMetrics(metrics: lastShotMetrics, playerStats: playerStats)
-//            dashboardView.speed = lastThrowMetrics.releaseSpeed
-//            dashboardView.animateSpeedChart()
-//            playerStats.adjustMetrics(score: lastThrowMetrics.score, speed: lastThrowMetrics.releaseSpeed,
-//                                      releaseAngle: lastThrowMetrics.releaseAngle, throwType: lastThrowMetrics.throwType)
-//            playerStats.resetObservations() bunun yerine |
+
             poseObservations = []
             trajectoryInFlightPoseObservations = 0
             
@@ -873,7 +826,7 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
                 
                 throwCompletedAction(cameraViewController, trajectoryPoints)
             }
-            boardBoundingBox.isHidden = true
+            hoopBoundingBox.isHidden = true
             
             showAllTrajectories()
             
@@ -954,7 +907,7 @@ extension ContentAnalysisViewController: UIContextMenuInteractionDelegate {
                     image: UIImage(systemName: "pencil")
                 ) { action in
                     self.viewModel.manualHoopSelectorState = .inProgress
-                    self.boardBoundingBox.isHidden = true
+                    self.hoopBoundingBox.isHidden = true
                 }
                 
                 return UIMenu(title: "", children: [editAction])
@@ -962,11 +915,3 @@ extension ContentAnalysisViewController: UIContextMenuInteractionDelegate {
         )
     }
 }
-
-/*
- boardBoundingBox.viewRect (251.0, 121.16667175292969, 33.666656494140625, 38.66667175292969)
- boardBoundingBox.visionRect (0.24952290076335876, 0.5932993803922153, 0.04818700834085016, 0.09838847774282367)
- 
- boardBoundingBox.viewRect (348.5, 364.5, 60.0, 85.0)
- boardBoundingBox.visionRect (0.2532703488372093, 0.5859173126614987, 0.04360465116279072, 0.10981912144702843)
- */
