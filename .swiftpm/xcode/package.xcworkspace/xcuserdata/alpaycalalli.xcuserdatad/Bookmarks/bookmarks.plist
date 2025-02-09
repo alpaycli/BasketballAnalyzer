@@ -10,15 +10,15 @@
 				<key>location-parameters</key>
 				<dict>
 					<key>EndingColumnNumber</key>
-					<string>0</string>
+					<string>16</string>
 					<key>EndingLineNumber</key>
-					<string>638</string>
+					<string>635</string>
 					<key>StartingColumnNumber</key>
-					<string>0</string>
+					<string>16</string>
 					<key>StartingLineNumber</key>
-					<string>637</string>
+					<string>635</string>
 					<key>Timestamp</key>
-					<string>760812395.045778</string>
+					<string>760821018.458698</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -34,16 +34,15 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>                        trajectoryView.resetPath()
-</string>
+				<string></string>
 				<key>leading</key>
-				<string>                    if showShotMetrics {
-                        showShotMetrics = false
-</string>
+				<string>                trajectoryView.uniquePoints.append(contentsOf: viewPoints)
+                self.trajectoryView.performTransition(.fadeIn, duration: 0.25)
+                </string>
 				<key>trailing</key>
-				<string>//                        delegate.showLastShowMetrics(metrics: nil)
-                    }
-                    
+				<string>
+                self.noObservationFrameCount = 0
+            }
 </string>
 			</dict>
 			<key>title</key>

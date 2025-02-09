@@ -610,44 +610,30 @@ extension ContentAnalysisViewController {
             }
         } else {
             for path in results where path.confidence > GameConstants.trajectoryDetectionMinConfidence {
-//                guard path.detectedPoints.contains(where: { $0.y >= hoopRegion.midY }) else { return }
+                
+                let viewPoints = path.detectedPoints.map { controller.viewPointForVisionPoint($0.location) }
+                
+                if viewPoints.first!.y > hoopRegion.maxY,
+                   viewPoints.last!.y > hoopRegion.maxY {
+                    print("trajectory asagida baslayib asagida bitir, bosver")
+                    return
+                }
+                
                 guard let start = path.detectedPoints.first?.x,
                       let end = path.detectedPoints.last?.x else { return }
                 
                 let isPositive = end - start > 0
                 
                 if isPositive != isPlayerHoopDifferencePositive {
-//                    print("not normal trajectory")
+//                    print("trajectory is on wrong direction")
                     return
                 }
                 
-                // VNDetectTrajectoriesRequest has returned some trajectory observations.
-                // Process the path only when the confidence is over 90%.
-//                print("detectedpoints", path.detectedPoints.map { controller.viewPointForVisionPoint($0.location) })
-//                print("---", playerStats.shotCount)
                 self.trajectoryView.duration = path.timeRange.duration.seconds
                 self.trajectoryView.points = path.detectedPoints
-                trajectoryView.uniquePoints.append(contentsOf: path.detectedPoints.map { controller.viewPointForVisionPoint($0.location) })
+                trajectoryView.uniquePoints.append(contentsOf: viewPoints)
                 self.trajectoryView.performTransition(.fadeIn, duration: 0.25)
-                if !self.trajectoryView.fullTrajectory.isEmpty {
-//                    self.updateTrajectoryRegions()
-                    
-                    // Hide the previous shot metrics once a new shot is detected.
-                    if showShotMetrics {
-                        showShotMetrics = false
-                        trajectoryView.resetPath()
-//                        delegate.showLastShowMetrics(metrics: nil)
-                    }
-                    
-                    // Hide the previous throw metrics once a new throw is detected.
-//                    if !self.dashboardView.isHidden {
-//                        self.resetKPILabels()
-//                    }
-//                    if self.trajectoryView.isThrowComplete {
-//                        print("*THROW COMPLETED")
-//                        // Update the player statistics once the throw is complete.
-//                    }
-                }
+                
                 self.noObservationFrameCount = 0
             }
         }
@@ -730,14 +716,13 @@ extension ContentAnalysisViewController {
     }
     
     private func throwCompletedAction(_ controller: CameraViewController, _ trajectoryPoints: [CGPoint]) {
-        guard !trajectoryPoints.isEmpty else { return }
-        
         guard !trajectoryPoints.isEmpty else {
             print("safe areada trajectory yoxdu")
             trajectoryView.resetPath()
             return
         }
         
+        #warning("bu already yoxlanilir trajectory cekilen zaman")
         if trajectoryPoints.first!.y > hoopRegion.maxY && trajectoryPoints.last!.y > hoopRegion.maxY {
             print("trajectory asagida baslayib asagida bitir, bosver")
             trajectoryView.resetPath()
@@ -767,15 +752,6 @@ extension ContentAnalysisViewController {
 //        print("isEndPointOnLeftSideOfHoop", isEndPointOnLeftSideOfHoop)
 //        print("to compare", trajectoryPoints.first, trajectoryPoints.last)
 //        print(":")
-        
-        if playerStats.shotCount == 2 {
-            for point in [trajectoryPoints.first!, trajectoryPoints.last!] {
-                let v = UIView(frame: .init(origin: point, size: CGSize(width: 5, height: 5)))
-                v.backgroundColor = .magenta
-//                view.addSubview(v)
-                view.bringSubviewToFront(v)
-            }
-        }
          
         if let _ = trajectoryPoints.first(where: { hoopRegion.contains($0) }) {
             if isStartPointOnLeftSideOfHoop,
