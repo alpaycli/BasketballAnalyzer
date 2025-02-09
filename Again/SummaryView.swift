@@ -11,7 +11,7 @@ import SwiftUI
 struct SummaryView: View {
     @State private var showPreviewController = false
     
-    let previewVC: RPPreviewViewController
+    let previewVC: RPPreviewViewController?
     
     @Environment(\.dismiss) var dismiss
     @State private var isDismiss = false
@@ -27,7 +27,7 @@ struct SummaryView: View {
     let avgBallSpeed: Double?
     
     init(
-        previewVC: RPPreviewViewController,
+        previewVC: RPPreviewViewController?,
         makesCount: Int,
         attemptsCount: Int,
         mostMissReason: String,
@@ -43,7 +43,7 @@ struct SummaryView: View {
     }
     
     init(
-        previewVC: RPPreviewViewController,
+        previewVC: RPPreviewViewController?,
         playerStats: PlayerStats
     ) {
         self.previewVC = previewVC
@@ -62,7 +62,7 @@ struct SummaryView: View {
         )
     }
     
-    init(previewVC: RPPreviewViewController) {
+    init(previewVC: RPPreviewViewController?) {
         self.previewVC = previewVC
         self.makesCount = 0
         self.attemptsCount = 0
@@ -99,21 +99,25 @@ struct SummaryView: View {
             HStack {
                 Spacer()
                 Button("Save Session") {
+                    guard previewVC != nil else { return }
                     showPreviewController = true
                 }
+//                .disabled(previewVC == nil)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .tint(.green)
+                .tint(previewVC == nil ? Color.gray.opacity(0.6) : Color.green)
                 .foregroundStyle(.white)
-                .fontWeight(.bold)
+//                .fontWeight(.bold)
                 .padding()
             }
         }
         .fullScreenCover(isPresented: $showPreviewController, onDismiss: {
             print("preview dismissed")
         }) {
-            RPPreviewView(previewVC: previewVC)
-                .ignoresSafeArea()
+            if let previewVC {
+                RPPreviewView(previewVC: previewVC)
+                    .ignoresSafeArea()
+            }
         }
     }
 }

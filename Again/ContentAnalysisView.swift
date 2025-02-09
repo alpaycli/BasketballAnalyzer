@@ -191,12 +191,15 @@ class ContentAnalysisViewController: UIViewController {
     
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        viewModel.reset()
+        
         stopObservingStateChanges()
         setupStateModel = .init()
         delegate?.updateSetupState(setupStateModel)
         NotificationCenter.default.removeObserver(self)
-        
+         
         if RPScreenRecorder.shared().isRecording {
+            print("🛑recording stopped")
             RPScreenRecorder.shared().stopRecording()
         }
     }
@@ -403,6 +406,7 @@ class ContentAnalysisViewController: UIViewController {
             RPScreenRecorder.shared().startRecording { err in
                 if let err {
                     print("record error", err)
+                    self.viewModel.isRecordingPermissionDenied = true
                 }
             }
         } catch {
@@ -896,20 +900,13 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             showAllTrajectories()
             
             RPScreenRecorder.shared().stopRecording { [weak self] preview, err in
-                guard let preview,
-                      let self
-                else {
-                    print("no preview window"); return
-                }
+//                guard let preview,
+//                      let self
+//                else {
+//                    print("no preview window"); return
+//                }
                 
-                let newOverlay = UIHostingController(rootView: SummaryView(previewVC: preview, playerStats: self.playerStats))
-                newOverlay.view.frame = self.view.bounds
-                self.addChild(newOverlay)
-                newOverlay.beginAppearanceTransition(true, animated: true)
-                newOverlay.view.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-                self.view.addSubview(newOverlay.view)
-                newOverlay.endAppearanceTransition()
-                newOverlay.didMove(toParent: self)
+                self?.presentSummaryView(previewVC: preview)
                 
 //                preview.modalPresentationStyle = .overFullScreen
 //                preview.previewControllerDelegate = self
@@ -922,6 +919,17 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
     
     func previewControllerDidFinish(_ previewController: RPPreviewViewController) {
         previewController.dismiss(animated: true)
+    }
+    
+    func presentSummaryView(previewVC: RPPreviewViewController?) {
+        let newOverlay = UIHostingController(rootView: SummaryView(previewVC: previewVC, playerStats: self.playerStats))
+        newOverlay.view.frame = self.view.bounds
+        self.addChild(newOverlay)
+        newOverlay.beginAppearanceTransition(true, animated: true)
+        newOverlay.view.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        self.view.addSubview(newOverlay.view)
+        newOverlay.endAppearanceTransition()
+        newOverlay.didMove(toParent: self)
     }
 }
 

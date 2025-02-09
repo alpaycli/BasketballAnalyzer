@@ -23,6 +23,7 @@ class ContentViewModel {
     var setupGuideLabel: String? = nil
     var setupStateModel = SetupStateModel()
     var isFinishButtonPressed = false
+    var isRecordingPermissionDenied = false
     
     var hoopDetectionRequest: VNCoreMLRequest
     
@@ -33,6 +34,7 @@ class ContentViewModel {
         setupGuideLabel = nil
         setupStateModel = .init()
         isFinishButtonPressed = false
+        isRecordingPermissionDenied = false
     }
     
     init() {
@@ -312,7 +314,7 @@ extension ContentView {
             isTestMode = false
             
             shotPaths = []
-            viewModel.reset()
+//            viewModel.reset()
             isVideoEnded = false
             
             GameManager.shared.stateMachine.enter(GameManager.InactiveState.self)
@@ -396,6 +398,14 @@ extension ContentView {
             .padding()
         }
     }
+    
+    private var recordingDeniedLabel: some View {
+        Label("Recording denied", systemImage: "stop.circle")
+            .padding(5)
+            .background(.thinMaterial, in: .rect(cornerRadius: 10))
+            .foregroundStyle(.red)
+            .font(.headline.smallCaps())
+    }
 }
 
 // MARK: - Contents
@@ -412,6 +422,11 @@ extension ContentView {
                         .padding()
                         .background(.thinMaterial, in: .rect(cornerRadius: 10))
                         .foregroundStyle(.black)
+                }
+            }
+            .overlay(alignment: .top) {
+                if viewModel.isRecordingPermissionDenied, showSetupStateLabels {
+                    recordingDeniedLabel
                 }
             }
             .overlay(alignment: .topLeading) {
@@ -480,6 +495,8 @@ extension ContentView {
                         .padding()
                         .background(.thinMaterial, in: .rect(cornerRadius: 10))
                         .foregroundStyle(.black)
+                } else if viewModel.isRecordingPermissionDenied, showSetupStateLabels {
+                    recordingDeniedLabel
                 }
             }
             .overlay(alignment: .topLeading) {
