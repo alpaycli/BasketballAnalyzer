@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>659</string>
+					<string>638</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>658</string>
+					<string>637</string>
 					<key>Timestamp</key>
-					<string>760780235.637808</string>
+					<string>760812395.045778</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -138,51 +138,6 @@
 				<string>    
     private var poseObservations: [VNHumanBodyPoseObservation] = []
     
-</string>
-			</dict>
-			<key>type</key>
-			<string>bookmark</string>
-		</dict>
-		<dict>
-			<key>destination</key>
-			<dict>
-				<key>location-parameters</key>
-				<dict>
-					<key>EndingColumnNumber</key>
-					<string>0</string>
-					<key>EndingLineNumber</key>
-					<string>896</string>
-					<key>StartingColumnNumber</key>
-					<string>0</string>
-					<key>StartingLineNumber</key>
-					<string>895</string>
-					<key>Timestamp</key>
-					<string>760780235.637823</string>
-				</dict>
-				<key>rebasable-url</key>
-				<dict>
-					<key>base</key>
-					<string>workspace</string>
-					<key>payload</key>
-					<dict>
-						<key>relative-path</key>
-						<string>Again/ContentAnalysisView.swift</string>
-					</dict>
-				</dict>
-			</dict>
-			<key>text-context</key>
-			<dict>
-				<key>focused</key>
-				<string>                throwCompletedAction(cameraViewController, NSOrderedSet(array: trajectoryView.uniquePoints).map({ $0 as! CGPoint }))
-</string>
-				<key>leading</key>
-				<string>            
-            if !trajectoryView.fullTrajectory.isEmpty {
-</string>
-				<key>trailing</key>
-				<string>            }
-            boardBoundingBox.isHidden = true
-            
 </string>
 			</dict>
 			<key>type</key>

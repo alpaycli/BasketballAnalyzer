@@ -605,27 +605,6 @@ extension ContentAnalysisViewController {
             if self.noObservationFrameCount > 10 {
                 var trajectoryPoints = NSOrderedSet(array: trajectoryView.uniquePoints).map({ $0 as! CGPoint })
                 trajectoryPoints = trajectoryPoints.filter { hoopSafeAreaView.frame.contains($0) }
-                guard !trajectoryPoints.isEmpty else {
-                    print("safe areada trajectory yoxdu")
-                    trajectoryView.resetPath()
-                    return
-                }
-                
-                if trajectoryPoints.first!.y > hoopRegion.maxY && trajectoryPoints.last!.y > hoopRegion.maxY {
-                    print("trajectory asagida baslayib asagida bitir, bosver")
-                    trajectoryView.resetPath()
-                    return
-                }
-                
-                let startPointX = trajectoryPoints.first!.x
-                let isStartPointOnLeftSideOfHoop = startPointX < hoopRegion.minX
-                let isPlayerOnLeftSideOfHoop = playerBoundingBox.frame.maxX < hoopRegion.minX
-                
-                if isStartPointOnLeftSideOfHoop != isPlayerOnLeftSideOfHoop {
-                    print("player and start of the trajectory is not on same side")
-                    trajectoryView.resetPath()
-                    return
-                }
                 
                 throwCompletedAction(controller, trajectoryPoints)
             }
@@ -667,7 +646,6 @@ extension ContentAnalysisViewController {
 //                    if self.trajectoryView.isThrowComplete {
 //                        print("*THROW COMPLETED")
 //                        // Update the player statistics once the throw is complete.
-//                        return throwCompletedAction(controller)
 //                    }
                 }
                 self.noObservationFrameCount = 0
@@ -754,11 +732,31 @@ extension ContentAnalysisViewController {
     private func throwCompletedAction(_ controller: CameraViewController, _ trajectoryPoints: [CGPoint]) {
         guard !trajectoryPoints.isEmpty else { return }
         
-        var shotResult: ShotResult = .miss(.none)
+        guard !trajectoryPoints.isEmpty else {
+            print("safe areada trajectory yoxdu")
+            trajectoryView.resetPath()
+            return
+        }
+        
+        if trajectoryPoints.first!.y > hoopRegion.maxY && trajectoryPoints.last!.y > hoopRegion.maxY {
+            print("trajectory asagida baslayib asagida bitir, bosver")
+            trajectoryView.resetPath()
+            return
+        }
         
         let startPointX = trajectoryPoints.first!.x
-        let endPointX = trajectoryPoints.last!.x
         let isStartPointOnLeftSideOfHoop = startPointX < hoopRegion.minX
+        let isPlayerOnLeftSideOfHoop = playerBoundingBox.frame.maxX < hoopRegion.minX
+        
+        if isStartPointOnLeftSideOfHoop != isPlayerOnLeftSideOfHoop {
+            print("player and start of the trajectory is not on same side")
+            trajectoryView.resetPath()
+            return
+        }
+        
+        var shotResult: ShotResult = .miss(.none)
+        
+        let endPointX = trajectoryPoints.last!.x
         let isEndPointOnLeftSideOfHoop = endPointX < hoopRegion.minX
         
 //        print("trajectorypoints", trajectoryPoints.map { $0 })
@@ -893,7 +891,11 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             cameraViewController.stopCameraSession()
             
             if !trajectoryView.fullTrajectory.isEmpty {
-                throwCompletedAction(cameraViewController, NSOrderedSet(array: trajectoryView.uniquePoints).map({ $0 as! CGPoint }))
+                var trajectoryPoints = NSOrderedSet(array: trajectoryView.uniquePoints)
+                    .map({ $0 as! CGPoint })
+                    .filter { hoopSafeAreaView.frame.contains($0) }
+                
+                throwCompletedAction(cameraViewController, trajectoryPoints)
             }
             boardBoundingBox.isHidden = true
             
