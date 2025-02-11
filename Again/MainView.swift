@@ -5,6 +5,7 @@
 //  Created by Alpay Calalli on 16.12.24.
 //
 
+import TipKit
 import Observation
 import PhotosUI
 import AVFoundation
@@ -13,6 +14,8 @@ import SwiftUI
 
 @Observable
 class ContentViewModel {
+    var hoopCenterPoint: CGPoint?
+    
     var manualHoopSelectorState: AreaSelectorState = .none {
         didSet {
             print("manualHoopSelectorState", manualHoopSelectorState)
@@ -56,6 +59,8 @@ struct ContentView: View {
     @State private var viewModel = ContentViewModel()
     
     // MARK: -
+    
+    private let editHoopTip = EditHoopTip()
     
     @State private var shotPaths: [CGPath] = []
     
@@ -415,6 +420,15 @@ extension ContentView {
         ContentAnalysisView(recordedVideoSource: item, isTestMode: isTestMode, viewModel: viewModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
+            .overlay {
+                if let point = viewModel.hoopCenterPoint {
+                    Circle()
+                        .fill(.clear)
+                        .popoverTip(editHoopTip, arrowEdge: .top)
+                        .frame(width: 14)
+                        .position(point)
+                }
+            }
             .overlay(alignment: .top) {
                 if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
                     Text(setupGuideLabel)
@@ -422,10 +436,7 @@ extension ContentView {
                         .padding()
                         .background(.thinMaterial, in: .rect(cornerRadius: 10))
                         .foregroundStyle(.black)
-                }
-            }
-            .overlay(alignment: .top) {
-                if viewModel.isRecordingPermissionDenied, showSetupStateLabels {
+                } else if viewModel.isRecordingPermissionDenied, showSetupStateLabels {
                     recordingDeniedLabel
                 }
             }
@@ -562,105 +573,32 @@ extension ContentView {
     ContentView()
 }
 
-/*
- .overlay(alignment: .topTrailing) {
-     Button("Set") {
-         manualSelectedHoopRect = Path { path in
-             path.addLines(
-                 [
-                     CGPoint(
-                         x: hoopTopLeftPosition.x,
-                         y: hoopTopLeftPosition.y
-                     ),
-                     CGPoint(
-                         x: hoopTopRightPosition.x,
-                         y: hoopTopRightPosition.y
-                     ),
-                     CGPoint(
-                         x: hoopBottomRightPosition.x,
-                         y: hoopBottomRightPosition.y
-                     ),
-                     CGPoint(
-                         x: hoopBottomLeftPosition.x,
-                         y: hoopBottomLeftPosition.y
-                     ),
-                     CGPoint(
-                         x: hoopTopLeftPosition.x,
-                         y: hoopTopLeftPosition.y
-                     )
-                 ]
-             )
-         }
-         .boundingRect
-     }
-     .buttonStyle(.borderedProminent)
-     .tint(.green)
-     .font(.headline.smallCaps())
-     .padding()
- }
- .overlay {
-     Path { path in
-         path.addLines([
-             hoopTopLeftPosition,
-             hoopTopRightPosition,
-             hoopBottomRightPosition,
-             hoopBottomLeftPosition,
-             hoopTopLeftPosition
-         ])
-     }
-     .stroke(.purple, lineWidth: 3)
- }
- .overlay {
-     Circle()
-           .fill(Color.blue)
-           .frame(width: 20, height: 20)
-           .position(hoopTopLeftPosition)
-           .gesture(
-             DragGesture(minimumDistance: 0, coordinateSpace: .local)
-               .onChanged { gesture in
-                   hoopTopLeftPosition = gesture.location
-                   hoopBottomLeftPosition.x = gesture.location.x
-                   hoopTopRightPosition.y = gesture.location.y
-               }
-           )
-     
-     Circle()
-           .fill(Color.blue)
-           .frame(width: 20, height: 20)
-           .position(hoopTopRightPosition)
-           .gesture(
-             DragGesture(minimumDistance: 0, coordinateSpace: .local)
-               .onChanged { gesture in
-                   hoopTopRightPosition = gesture.location
-                   hoopBottomRightPosition.x = gesture.location.x
-                   hoopTopLeftPosition.y = gesture.location.y
-               }
-           )
-     
-     Circle()
-           .fill(Color.blue)
-           .frame(width: 20, height: 20)
-           .position(hoopBottomLeftPosition)
-           .gesture(
-             DragGesture(minimumDistance: 0, coordinateSpace: .local)
-               .onChanged { gesture in
-                   hoopBottomLeftPosition = gesture.location
-                   hoopTopLeftPosition.x = gesture.location.x
-                   hoopBottomRightPosition.y = gesture.location.y
-               }
-           )
-     
-     Circle()
-           .fill(Color.blue)
-           .frame(width: 20, height: 20)
-           .position(hoopBottomRightPosition)
-           .gesture(
-             DragGesture(minimumDistance: 0, coordinateSpace: .local)
-               .onChanged { gesture in
-                   hoopBottomRightPosition = gesture.location
-                   hoopBottomLeftPosition.y = gesture.location.y
-                   hoopTopRightPosition.x = gesture.location.x
-               }
-           )
- }
- */
+// Convert Vision's normalized coordinates to screen coordinates
+        func convertVisionPoint(_ point: CGPoint) -> CGPoint {
+            let screenSize = UIScreen.main.bounds.size
+            let y = point.x * screenSize.height
+            let x = point.y * screenSize.width
+            return CGPoint(x: x, y: y)
+        }
+
+func viewPointConverted(fromNormalizedContentsPoint normalizedPoint: CGPoint) -> CGPoint {
+    let videoRect = UIScreen.main.bounds
+    
+    let flipVertical = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -1)
+    let flippedPoint = normalizedPoint.applying(.verticalFlip)
+    
+    let convertedPoint = CGPoint(x: videoRect.origin.x + flippedPoint.x * videoRect.width,
+                                 y: videoRect.origin.y + flippedPoint.y * videoRect.height)
+    return convertedPoint
+}
+
+func viewRectConverted(fromNormalizedContentsRect normalizedRect: CGRect) -> CGRect {
+    let screenSize = UIScreen.main.bounds
+    let origin = CGPoint(x: screenSize.origin.x + normalizedRect.origin.x * screenSize.width,
+                         y: screenSize.origin.y + normalizedRect.origin.y * screenSize.height)
+    let size = CGSize(width: normalizedRect.width * screenSize.width,
+                      height: normalizedRect.height * screenSize.height)
+    let convertedRect = CGRect(origin: origin, size: size)
+    return convertedRect
+}
+

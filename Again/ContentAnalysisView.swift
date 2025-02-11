@@ -28,13 +28,13 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
     @Bindable var viewModel: ContentViewModel
     
     func makeUIViewController(context: Context) -> ContentAnalysisViewController {
-        let vc = ContentAnalysisViewController()
-        vc.setCameraVCDelegate(context.coordinator)
-        vc.delegate = context.coordinator
-        vc.viewModel = viewModel
-        
-        vc.isTestMode = isTestMode
-        vc.recordedVideoSource = isTestMode ? getTestVideo() : recordedVideoSource
+        let vc = ContentAnalysisViewController(
+            recordedVideoSource: isTestMode ? getTestVideo() : recordedVideoSource,
+            isTestMode: isTestMode,
+            viewModel: viewModel,
+            delegate: context.coordinator,
+            cameraVCDelegate: context.coordinator
+        )
         
         context.coordinator.vc = vc
         
@@ -165,6 +165,27 @@ class ContentAnalysisViewController: UIViewController {
     private var playerStats = PlayerStats()
     private var lastShotMetrics = ShotMetrics()
     
+    // MARK: - Init
+    
+    init(
+        recordedVideoSource: AVAsset?,
+        isTestMode: Bool,
+        viewModel: ContentViewModel,
+        delegate: ContentAnalysisVCDelegate,
+        cameraVCDelegate: CameraViewControllerOutputDelegate
+    ) {
+        self.recordedVideoSource = recordedVideoSource
+        self.isTestMode = isTestMode
+        self.viewModel = viewModel
+        self.delegate = delegate
+        self.cameraViewController.outputDelegate = cameraVCDelegate
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     // MARK: - Life Cycle
     
     override func viewDidLoad() {
@@ -174,10 +195,13 @@ class ContentAnalysisViewController: UIViewController {
         setupHoopBoundingBox()
         setUIElements()
         configureView()
-        print("stage", gameManager.stateMachine.currentState)
         
 //        if isTestMode {
 //            testModePresetHoop()
+//            
+//            Task {
+//                await EditHoopTip.viewAppearCount.donate()
+//            }
 //        }
     }
     
@@ -186,6 +210,10 @@ class ContentAnalysisViewController: UIViewController {
         
         if isTestMode {
             testModePresetHoop()
+            
+            Task {
+                await EditHoopTip.viewAppearCount.donate()
+            }
         }
     }
     
@@ -216,10 +244,6 @@ class ContentAnalysisViewController: UIViewController {
 //    }
     
     // MARK: - Public Methods
-    
-    func setCameraVCDelegate(_ cameraVCDelegate: CameraViewControllerOutputDelegate) {
-        self.cameraViewController.outputDelegate = cameraVCDelegate
-    }
     
     func setHoopRegion() async {
         self.hoopBoundingBox.reset()
@@ -254,7 +278,10 @@ class ContentAnalysisViewController: UIViewController {
         hoopBoundingBox.borderColor = .green
         hoopBoundingBox.visionRect = cameraViewController.visionRectForViewRect(hoopBoundingBox.frame)
         manualHoopAreaSelectorView.isHidden = true
-        print("keine", gameManager.stateMachine.currentState)
+        
+        let point: CGPoint = .init(x: hoopBoundingBox.visionRect.minX, y: hoopBoundingBox.visionRect.midY)
+        viewModel.hoopCenterPoint = viewPointConverted(fromNormalizedContentsPoint: point)
+        
         self.gameManager.stateMachine.enter(GameManager.DetectedHoopState.self)
     }
     
@@ -794,6 +821,10 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
 
             poseObservations = []
             trajectoryInFlightPoseObservations = 0
+            
+            if isTestMode && playerStats.shotCount == 2 {
+                EditHoopTip.showTip = true
+            }
             
 //            print("after shot completed, here is lastShotMetrics:", lastShotMetrics)
 //            print(playerStats.allReleaseAngles.count)
