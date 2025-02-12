@@ -98,7 +98,7 @@ struct SummaryView: View {
             Spacer()
             HStack {
                 Spacer()
-                Button("Save Session") {
+                Button("Export Session") {
                     guard previewVC != nil else { return }
                     showPreviewController = true
                 }

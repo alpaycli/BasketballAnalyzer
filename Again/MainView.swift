@@ -138,7 +138,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Content
+// MARK: - Devices
 
 extension ContentView {
     private var padContent: some View {
@@ -248,6 +248,111 @@ extension ContentView {
             
             Spacer()
         }
+    }
+}
+
+// MARK: - Contents
+
+extension ContentView {
+    private func contentViewWithRecordedVideo(_ item: AVAsset? = nil, isTestMode: Bool = false) -> some View {
+        ContentAnalysisView(recordedVideoSource: item, isTestMode: isTestMode, viewModel: viewModel)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
+            .overlay {
+                if let point = viewModel.hoopCenterPoint {
+                    Circle()
+                        .fill(.clear)
+                        .popoverTip(editHoopTip, arrowEdge: .top)
+                        .frame(width: 14)
+                        .position(point)
+                }
+            }
+            .overlay(alignment: .top) {
+                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
+                    Text(setupGuideLabel)
+                        .font(.largeTitle)
+                        .padding()
+                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
+                        .foregroundStyle(.black)
+                } else if viewModel.isRecordingPermissionDenied {
+                    recordingDeniedLabel
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                closeButton
+            }
+            .overlay(alignment: .topTrailing) {
+                if !viewModel.isHoopPlaced || viewModel.manualHoopSelectorState == .inProgress {
+                    manualHoopSelectionButtons
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if showMetricsAndScore {
+                    makeAndAttemptsView
+                }
+            }
+            .overlay(alignment: .bottomLeading) {
+                if let lastShotMetrics = viewModel.lastShotMetrics, showMetricsAndScore {
+                    lastShotMetricsView(lastShotMetrics)
+                }
+            }
+            .overlay {
+                if showSetupStateLabels {
+                    setupStatesView
+                }
+            }
+            .toolbarVisibility(.hidden, for: .navigationBar)
+    }
+    
+    private var contentViewWithLiveCamera: some View {
+        ContentAnalysisView(recordedVideoSource: nil, isTestMode: false, viewModel: viewModel)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
+            .overlay(alignment: .top) {
+                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
+                    Text(setupGuideLabel)
+                        .font(.largeTitle)
+                        .padding()
+                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
+                        .foregroundStyle(.black)
+                } else if viewModel.isRecordingPermissionDenied {
+                    recordingDeniedLabel
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                closeButton
+            }
+            .overlay(alignment: .topTrailing) {
+                if !viewModel.isHoopPlaced || viewModel.manualHoopSelectorState == .inProgress {
+                    manualHoopSelectionButtons
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if showMetricsAndScore {
+                    makeAndAttemptsView
+                }
+            }
+            .overlay(alignment: .bottomLeading) {
+                if let lastShotMetrics = viewModel.lastShotMetrics, showMetricsAndScore {
+                    lastShotMetricsView(lastShotMetrics)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                // finish game button
+                if !viewModel.isFinishButtonPressed, viewModel.isHoopPlaced {
+                    LongPressButton(duration: 0.4) {
+                        viewModel.isFinishButtonPressed = true
+                        shotPaths = viewModel.playerStats?.shotPaths ?? []
+                    }
+                }
+            }
+            .overlay {
+                if showSetupStateLabels {
+                    setupStatesView
+                }
+            }
+            .toolbarVisibility(.hidden, for: .navigationBar)
+        
     }
 }
 
@@ -372,13 +477,6 @@ extension ContentView {
         .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
     }
     
-    private var shotPathsView: some View {
-        ForEach(shotPaths, id: \.self) { shotPath in
-            Path(shotPath)
-                .stroke(.red, lineWidth: 3)
-        }
-    }
-    
     private var manualHoopSelectionButtons: some View {
         HStack {
             if viewModel.manualHoopSelectorState == .inProgress {
@@ -411,161 +509,34 @@ extension ContentView {
             .foregroundStyle(.red)
             .font(.headline.smallCaps())
     }
-}
-
-// MARK: - Contents
-
-extension ContentView {
-    private func contentViewWithRecordedVideo(_ item: AVAsset? = nil, isTestMode: Bool = false) -> some View {
-        ContentAnalysisView(recordedVideoSource: item, isTestMode: isTestMode, viewModel: viewModel)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea()
-            .overlay {
-                if let point = viewModel.hoopCenterPoint {
-                    Circle()
-                        .fill(.clear)
-                        .popoverTip(editHoopTip, arrowEdge: .top)
-                        .frame(width: 14)
-                        .position(point)
-                }
-            }
-            .overlay(alignment: .top) {
-                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
-                    Text(setupGuideLabel)
-                        .font(.largeTitle)
-                        .padding()
-                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
-                        .foregroundStyle(.black)
-                } else if viewModel.isRecordingPermissionDenied, showSetupStateLabels {
-                    recordingDeniedLabel
-                }
-            }
-            .overlay(alignment: .topLeading) {
-                closeButton
-            }
-            .overlay(alignment: .topTrailing) {
-                if !viewModel.isHoopPlaced || viewModel.manualHoopSelectorState == .inProgress {
-                    manualHoopSelectionButtons
-                }
-            }
-            .overlay(alignment: .bottom) {
-                if showMetricsAndScore {
-                    makeAndAttemptsView
-                }
-            }
-            .overlay(alignment: .bottomLeading) {
-                if let lastShotMetrics = viewModel.lastShotMetrics, showMetricsAndScore {
-                    VStack(alignment: .leading) {
-                        Text("Release Angel: ")
-                            .foregroundStyle(.white)
-                        +
-                        Text(lastShotMetrics.releaseAngle.formatted())
-                            .fontWeight(.bold)
-                            .foregroundStyle(.orange)
-                        
-                        Text("Ball Speed: ")
-                            .foregroundStyle(.white)
-                        +
-                        Text(lastShotMetrics.speed.formatted() + " MPH")
-                            .fontWeight(.bold)
-                            .foregroundStyle(.orange)
-                        
-                        if lastShotMetrics.shotResult != .score {
-                            Text("Miss Reason: ")
-                                .foregroundStyle(.white)
-                            +
-                            Text(lastShotMetrics.shotResult.description)
-                                .fontWeight(.bold)
-                                .foregroundStyle(.orange)
-                        }
-                    }
-                    .padding()
-                }
-            }
-            .overlay {
-                if showSetupStateLabels {
-                    setupStatesView
-                }
-            }
-            .overlay {
-                if !shotPaths.isEmpty {
-                    shotPathsView
-                }
-            }
-            .toolbarVisibility(.hidden, for: .navigationBar)
-    }
     
-    private var contentViewWithLiveCamera: some View {
-        ContentAnalysisView(recordedVideoSource: nil, isTestMode: false, viewModel: viewModel)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea()
-            .overlay(alignment: .top) {
-                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
-                    Text(setupGuideLabel)
-                        .font(.largeTitle)
-                        .padding()
-                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
-                        .foregroundStyle(.black)
-                } else if viewModel.isRecordingPermissionDenied, showSetupStateLabels {
-                    recordingDeniedLabel
-                }
+    @ViewBuilder
+    private func lastShotMetricsView(_ metrics: ShotMetrics) -> some View {
+        VStack(alignment: .leading) {
+            Text("Release Angel: ")
+                .foregroundStyle(.white)
+            +
+            Text(metrics.releaseAngle.formatted())
+                .fontWeight(.bold)
+//                            .foregroundStyle(.orange)
+            
+//                        Text("Ball Speed: ")
+//                            .foregroundStyle(.white)
+//                        +
+//                        Text(lastShotMetrics.speed.formatted() + " MPH")
+//                            .fontWeight(.bold)
+//                            .foregroundStyle(.orange)
+            
+            if metrics.shotResult != .score {
+                Text("Miss Reason: ")
+                    .foregroundStyle(.white)
+                +
+                Text(metrics.shotResult.description)
+                    .fontWeight(.bold)
+//                                .foregroundStyle(.orange)
             }
-            .overlay(alignment: .topLeading) {
-                closeButton
-            }
-            .overlay(alignment: .topTrailing) {
-                if !viewModel.isHoopPlaced || viewModel.manualHoopSelectorState == .inProgress {
-                    manualHoopSelectionButtons
-                }
-            }
-            .overlay(alignment: .bottom) {
-                if showMetricsAndScore {
-                    makeAndAttemptsView
-                }
-            }
-            .overlay(alignment: .bottomLeading) {
-                if let lastShotMetrics = viewModel.lastShotMetrics, showMetricsAndScore {
-                    VStack(alignment: .leading) {
-                        Text("Release Angel: ")
-//                            .zIndex(999)
-                            .foregroundStyle(.white)
-                        +
-                        Text(lastShotMetrics.releaseAngle.formatted())
-                            .fontWeight(.bold)
-                            .foregroundStyle(.orange)
-                        
-                        Text("Ball Speed: ")
-//                            .zIndex(999)
-                            .foregroundStyle(.white)
-                        +
-                        Text(lastShotMetrics.speed.formatted() + " MPH")
-                            .fontWeight(.bold)
-                            .foregroundStyle(.orange)
-                    }
-                    .padding()
-                }
-            }
-            .overlay(alignment: .bottomTrailing) {
-                // finish game button
-                if !viewModel.isFinishButtonPressed, viewModel.isHoopPlaced {
-                    LongPressButton(duration: 0.4) {
-                        viewModel.isFinishButtonPressed = true
-                        shotPaths = viewModel.playerStats?.shotPaths ?? []
-                    }
-                }
-            }
-            .overlay {
-                if showSetupStateLabels {
-                    setupStatesView
-                }
-            }
-            .overlay {
-                if !shotPaths.isEmpty {
-                    shotPathsView
-                }
-            }
-            .toolbarVisibility(.hidden, for: .navigationBar)
-        
+        }
+        .padding()
     }
 }
 
@@ -573,32 +544,21 @@ extension ContentView {
     ContentView()
 }
 
-// Convert Vision's normalized coordinates to screen coordinates
-        func convertVisionPoint(_ point: CGPoint) -> CGPoint {
-            let screenSize = UIScreen.main.bounds.size
-            let y = point.x * screenSize.height
-            let x = point.y * screenSize.width
-            return CGPoint(x: x, y: y)
-        }
+/// Convert Vision's normalized coordinates to screen coordinates
+func convertVisionPoint(_ point: CGPoint) -> CGPoint {
+    let screenSize = UIScreen.main.bounds.size
+    let y = point.x * screenSize.height
+    let x = point.y * screenSize.width
+    return CGPoint(x: x, y: y)
+}
 
+/// Convert Vision's normalized coordinates to screen coordinates
 func viewPointConverted(fromNormalizedContentsPoint normalizedPoint: CGPoint) -> CGPoint {
     let videoRect = UIScreen.main.bounds
     
-    let flipVertical = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -1)
     let flippedPoint = normalizedPoint.applying(.verticalFlip)
     
     let convertedPoint = CGPoint(x: videoRect.origin.x + flippedPoint.x * videoRect.width,
                                  y: videoRect.origin.y + flippedPoint.y * videoRect.height)
     return convertedPoint
 }
-
-func viewRectConverted(fromNormalizedContentsRect normalizedRect: CGRect) -> CGRect {
-    let screenSize = UIScreen.main.bounds
-    let origin = CGPoint(x: screenSize.origin.x + normalizedRect.origin.x * screenSize.width,
-                         y: screenSize.origin.y + normalizedRect.origin.y * screenSize.height)
-    let size = CGSize(width: normalizedRect.width * screenSize.width,
-                      height: normalizedRect.height * screenSize.height)
-    let convertedRect = CGRect(origin: origin, size: size)
-    return convertedRect
-}
-
