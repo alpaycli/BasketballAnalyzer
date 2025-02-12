@@ -79,6 +79,8 @@ struct ContentView: View {
     
     @State private var isVideoEnded = false
     
+    @State private var isShowGuidesView = false
+    
     var showMetricsAndScore: Bool {
         !isVideoEnded && !viewModel.isFinishButtonPressed
     }
@@ -114,6 +116,9 @@ struct ContentView: View {
                 contentViewWithLiveCamera
                     .navigationTransition(.zoom(sourceID: "liveCameraZoom", in: namespace))
             }
+            .fullScreenCover(isPresented: $isShowGuidesView) {
+                SettingUpDeviceInstructionView(isShowGuidesView: $isShowGuidesView)
+            }
             .onReceive(pub) { c in
                 print("video ended in view", c.name.rawValue, c.name)
                 isVideoEnded = true
@@ -145,10 +150,8 @@ extension ContentView {
         VStack {
             HStack {
                 Spacer()
-                NavigationLink {
-                    InstructionsView()
-                } label : {
-                    Text("Show Guides")   
+                Button("Show Guides") {
+                    isShowGuidesView = true
                 }
                 .font(.largeTitle)
                 .buttonStyle(.borderedProminent)
@@ -204,7 +207,7 @@ extension ContentView {
             HStack {
                 Spacer()
                 NavigationLink {
-                    InstructionsView()
+//                    SettingUpDeviceInstructionView()
                 } label: {
                     Text("Show Guides")
                 }
@@ -514,7 +517,6 @@ extension ContentView {
     private func lastShotMetricsView(_ metrics: ShotMetrics) -> some View {
         VStack(alignment: .leading) {
             Text("Release Angel: ")
-                .foregroundStyle(.white)
             +
             Text(metrics.releaseAngle.formatted())
                 .fontWeight(.bold)
@@ -529,13 +531,13 @@ extension ContentView {
             
             if metrics.shotResult != .score {
                 Text("Miss Reason: ")
-                    .foregroundStyle(.white)
                 +
                 Text(metrics.shotResult.description)
                     .fontWeight(.bold)
 //                                .foregroundStyle(.orange)
             }
         }
+        .foregroundStyle(.white)
         .padding()
     }
 }

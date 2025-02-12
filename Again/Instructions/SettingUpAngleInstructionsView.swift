@@ -7,9 +7,10 @@
 
 import SwiftUI
 
-struct InstructionsView: View {
+struct SettingUpAngleInstructionsView: View {
+    @Binding var isShowGuidesView: Bool
+    @State private var navigateToNext = false
     var body: some View {
-        NavigationStack {
             VStack {
                 Spacer()
                 Text("Angle Instruction")
@@ -17,8 +18,9 @@ struct InstructionsView: View {
                     .fontWeight(.bold)
                 HStack(alignment: .top) {
                     VStack {
-                        Text("❌")
+                        Image(systemName: "xmark.circle.fill")
                             .font(.largeTitle)
+                            .foregroundStyle(.red.gradient)
                         
                         VStack(alignment: .leading) {
                             Image("unprefferedAngle1")
@@ -43,8 +45,9 @@ struct InstructionsView: View {
                     }
                     Spacer()
                     VStack {
-                        Text("✅")
+                        Image(systemName: "checkmark.circle.fill")
                             .font(.largeTitle)
+                            .foregroundStyle(.green.gradient)
                         
                         VStack(alignment: .leading) {
                             Image("prefferedAngle1")
@@ -71,17 +74,22 @@ struct InstructionsView: View {
                 .padding(.horizontal, 40)
                 
                 Spacer()
-                Button("Continue") {}
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .padding(.bottom)
-                    .fontWeight(.bold)
+                SmallButton("Next", systemImage: "arrow.right") {
+                    navigateToNext = true
+                }
+                .backgroundStyle(.blue)
+                .foregroundStyle(.white)
+                .fontWeight(.bold)
+                Spacer()
                 
             }
-        }
+            .navigationDestination(isPresented: $navigateToNext) { 
+                SettingUpHoopInstructionView(isShowGuidesView: $isShowGuidesView)
+            }
+        
     }
 }
 
 #Preview {
-    InstructionsView()
+    SettingUpAngleInstructionsView(isShowGuidesView: .constant(false))
 }

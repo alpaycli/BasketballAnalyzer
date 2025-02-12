@@ -81,16 +81,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>        }
+				<string>            //            .onChange(of: photo) { oldValue, newValue in
 </string>
 				<key>leading</key>
-				<string>            //                }
-            //            }
+				<string>            .buttonStyle(.plain)
+            //            .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
 </string>
 				<key>trailing</key>
-				<string>    }
-}
-
+				<string>            //                if let newValue {
+            //                    handlePhotoPickerSelection(newValue)
+            //                }
 </string>
 			</dict>
 			<key>title</key>
