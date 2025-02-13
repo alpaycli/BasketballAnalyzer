@@ -113,10 +113,10 @@ protocol ContentAnalysisVCDelegate: AnyObject {
 
 class ContentAnalysisViewController: UIViewController {
     
-    weak var delegate: ContentAnalysisVCDelegate?
+    private weak var delegate: ContentAnalysisVCDelegate?
     private let gameManager = GameManager.shared
-    var viewModel: ContentViewModel!
-    var isTestMode: Bool!
+    private let viewModel: ContentViewModel
+    private let isTestMode: Bool
     
     var recordedVideoSource: AVAsset?
     
@@ -135,6 +135,10 @@ class ContentAnalysisViewController: UIViewController {
         }
     }
     private var hoopSafeAreaView = UIView(frame: .zero)
+    
+    var overlayVC: UIHostingController<SummaryView>?
+    var previewVC: RPPreviewViewController?
+    let toggleButton = UIButton(type: .system)
     
     private var trajectoryInFlightPoseObservations = 0
     private var noObservationFrameCount = 0
@@ -280,6 +284,7 @@ class ContentAnalysisViewController: UIViewController {
         manualHoopAreaSelectorView.isHidden = true
         
         let point: CGPoint = .init(x: hoopBoundingBox.visionRect.minX, y: hoopBoundingBox.visionRect.midY)
+        // It's used for showing Tip in SwiftUI view.
         viewModel.hoopCenterPoint = viewPointConverted(fromNormalizedContentsPoint: point)
         
         self.gameManager.stateMachine.enter(GameManager.DetectedHoopState.self)
@@ -679,8 +684,6 @@ extension ContentAnalysisViewController {
 extension ContentAnalysisViewController {
     private func updatePlayerStats(_ controller: CameraViewController, shotResult: ShotResult) {
         // Compute the speed in mph
-        // trajectoryView.speed is in points/second, convert that to meters/second by multiplying the pointToMeterMultiplier.
-        // 1 meters/second = 2.24 miles/hour
         let speed = round(trajectoryView.speed * gameManager.pointToMeterMultiplier * 2.24 * 100) / 100
         // getReleaseAngle ve getLastJumpshotTypein playerStatda olmagi da menasizdi onsuz, baxariq.
         let releaseAngle = playerStats.getReleaseAngle(poseObservations: poseObservations)
@@ -709,7 +712,7 @@ extension ContentAnalysisViewController {
             return
         }
         
-        #warning("bu already yoxlanilir trajectory cekilen zaman")
+        // TODO: bu already yoxlanilir trajectory cekilen zaman
         if trajectoryPoints.first!.y > hoopRegion.maxY && trajectoryPoints.last!.y > hoopRegion.maxY {
             print("trajectory asagida baslayib asagida bitir, bosver")
             trajectoryView.resetPath()
@@ -732,13 +735,13 @@ extension ContentAnalysisViewController {
         let isEndPointOnLeftSideOfHoop = endPointX < hoopRegion.minX
         
 //        print("trajectorypoints", trajectoryPoints.map { $0 })
-//        print("hoopRegion", hoopRegion)
-//        print("startPointX", startPointX)
-//        print("endPointX", endPointX)
-//        print("isStartPointOnLeftSideOfHoop", isStartPointOnLeftSideOfHoop)
-//        print("isEndPointOnLeftSideOfHoop", isEndPointOnLeftSideOfHoop)
+        print("hoopRegion", hoopRegion)
+        print("startPointX", startPointX)
+        print("endPointX", endPointX)
+        print("isStartPointOnLeftSideOfHoop", isStartPointOnLeftSideOfHoop)
+        print("isEndPointOnLeftSideOfHoop", isEndPointOnLeftSideOfHoop)
 //        print("to compare", trajectoryPoints.first, trajectoryPoints.last)
-//        print(":")
+        print(":")
          
         if let _ = trajectoryPoints.first(where: { hoopRegion.contains($0) }) {
             if isStartPointOnLeftSideOfHoop,
@@ -756,7 +759,18 @@ extension ContentAnalysisViewController {
                 shotResult = .score
             }
             
-        } else if (startPointX < hoopRegion.minX && endPointX > hoopRegion.maxX) || (startPointX > hoopRegion.maxX && endPointX < hoopRegion.minX) {
+        } else if isStartPointOnLeftSideOfHoop,
+                  let oppositeSidePoint = trajectoryPoints.first(where: { $0.x > hoopRegion.maxX }),
+                  oppositeSidePoint.y < hoopRegion.minY {
+            //                print("saga dogru atilan top deyib qayidib")
+            shotResult = .miss(.none)
+        } else if !isStartPointOnLeftSideOfHoop,
+                  let oppositeSidePoint = trajectoryPoints.first(where: { $0.x < hoopRegion.minX }),
+                  oppositeSidePoint.y < hoopRegion.minY {
+            //                print("sola dogru atilan top deyib qayidib", oppositeSidePoint.y, hoopRegion.maxY, hoopRegion.minY)
+            shotResult = .miss(.none)
+        }
+        else if (startPointX < hoopRegion.minX && endPointX > hoopRegion.maxX) || (startPointX > hoopRegion.maxX && endPointX < hoopRegion.minX) {
 //            print("long")
             shotResult = .miss(.long)
         } else if isStartPointOnLeftSideOfHoop == isEndPointOnLeftSideOfHoop {
@@ -769,6 +783,12 @@ extension ContentAnalysisViewController {
 //        print(playerStats.totalScore, "makes from", playerStats.shotCount, "attempts")
 //        print("-----")
         trajectoryView.resetPath()
+        
+        for point in trajectoryPoints {
+            let v = UIView(frame: .init(x: point.x, y: point.y, width: 10, height: 10))
+            v.backgroundColor = .red
+//            view.addSubview(v)
+        }
     }
     
     private func storeBodyPoseObserarvations(_ observation: VNHumanBodyPoseObservation) {
@@ -862,17 +882,22 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             showAllTrajectories()
             
             RPScreenRecorder.shared().stopRecording { [weak self] preview, err in
+                guard let self else { return }
 //                guard let preview,
 //                      let self
 //                else {
 //                    print("no preview window"); return
 //                }
+                previewVC = preview
                 
-                self?.presentSummaryView(previewVC: preview)
+//                presentSummaryView(previewVC: preview)
                 
-//                preview.modalPresentationStyle = .overFullScreen
-//                preview.previewControllerDelegate = self
-//                self.present(preview, animated: true)
+                toggleButton.setTitle("Toggle Overlay", for: .normal)
+                toggleButton.addTarget(self, action: #selector(toggleOverlay), for: .touchUpInside)
+                toggleButton.frame = CGRect(x: 50, y: 50, width: 150, height: 50)
+                toggleButton.backgroundColor = .systemOrange
+                view.addSubview(toggleButton)
+                view.bringSubviewToFront(toggleButton)
             }
         default:
             break
@@ -882,6 +907,32 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
     func previewControllerDidFinish(_ previewController: RPPreviewViewController) {
         previewController.dismiss(animated: true)
     }
+    
+    @objc func toggleOverlay() {
+            if let overlayVC = overlayVC {
+                // Hide overlay
+                overlayVC.willMove(toParent: nil)
+                overlayVC.beginAppearanceTransition(false, animated: true)
+                overlayVC.view.removeFromSuperview()
+                overlayVC.endAppearanceTransition()
+                overlayVC.removeFromParent()
+                self.overlayVC = nil
+            } else {
+                // Show overlay
+                let newOverlay = UIHostingController(rootView: SummaryView(previewVC: previewVC, playerStats: self.playerStats))
+                newOverlay.view.frame = self.view.bounds
+                newOverlay.view.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+                
+                self.addChild(newOverlay)
+                newOverlay.beginAppearanceTransition(true, animated: true)
+                self.view.addSubview(newOverlay.view)
+                newOverlay.endAppearanceTransition()
+                newOverlay.didMove(toParent: self)
+                
+                self.overlayVC = newOverlay
+                self.view.bringSubviewToFront(toggleButton)
+            }
+        }
     
     func presentSummaryView(previewVC: RPPreviewViewController?) {
         let newOverlay = UIHostingController(rootView: SummaryView(previewVC: previewVC, playerStats: self.playerStats))
@@ -895,37 +946,7 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
     }
 }
 
-struct RPPreviewView: UIViewControllerRepresentable {
-    let previewVC: RPPreviewViewController
-    init(previewVC: RPPreviewViewController) {
-        self.previewVC = previewVC
-    }
-    
-    
-    func makeUIViewController(context: Context) -> RPPreviewViewController {
-        previewVC.previewControllerDelegate = context.coordinator
-        
-        //                preview.modalPresentationStyle = .overFullScreen
-        
-        //                self.present(preview, animated: true)
-        
-        return previewVC
-    }
-    
-    func updateUIViewController(_ uiViewController: RPPreviewViewController, context: Context) {
-        
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-    
-    class Coordinator: NSObject, RPPreviewViewControllerDelegate {
-        func previewControllerDidFinish(_ previewController: RPPreviewViewController) {
-            previewController.dismiss(animated: true)
-        }
-    }
-}
+// MARK: - Context Menu
 
 extension ContentAnalysisViewController: UIContextMenuInteractionDelegate {
     func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {

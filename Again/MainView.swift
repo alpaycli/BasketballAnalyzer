@@ -281,12 +281,15 @@ extension ContentView {
                     recordingDeniedLabel
                 }
             }
-            .overlay(alignment: .topLeading) {
-                closeButton
-            }
             .overlay(alignment: .topTrailing) {
+                closeButton
+                    .padding()
+            }
+            .overlay(alignment: .bottomTrailing) {
                 if !viewModel.isHoopPlaced || viewModel.manualHoopSelectorState == .inProgress {
                     manualHoopSelectionButtons
+                        .padding(.trailing)
+//                        .padding()
                 }
             }
             .overlay(alignment: .bottom) {
@@ -324,6 +327,7 @@ extension ContentView {
             }
             .overlay(alignment: .topLeading) {
                 closeButton
+                    .padding()
             }
             .overlay(alignment: .topTrailing) {
                 if !viewModel.isHoopPlaced || viewModel.manualHoopSelectorState == .inProgress {
@@ -489,9 +493,8 @@ extension ContentView {
                 .buttonStyle(.borderless)
                 .tint(.green)
                 .font(.headline.smallCaps())
-                .padding()
             }
-            Button(viewModel.manualHoopSelectorState == .inProgress ? "Set" : "Set Hoop Manually") {
+            Button(viewModel.manualHoopSelectorState == .inProgress ? "Set" : "Set Hoop") {
                 if viewModel.manualHoopSelectorState == .inProgress {
                     viewModel.manualHoopSelectorState = .set
                 } else {
@@ -501,7 +504,6 @@ extension ContentView {
             .buttonStyle(.borderedProminent)
             .tint(.green)
             .font(.headline.smallCaps())
-            .padding()
         }
     }
     
@@ -518,7 +520,7 @@ extension ContentView {
         VStack(alignment: .leading) {
             Text("Release Angel: ")
             +
-            Text(metrics.releaseAngle.formatted())
+            Text(metrics.releaseAngle.formatted() + "°")
                 .fontWeight(.bold)
 //                            .foregroundStyle(.orange)
             
@@ -529,13 +531,15 @@ extension ContentView {
 //                            .fontWeight(.bold)
 //                            .foregroundStyle(.orange)
             
-            if metrics.shotResult != .score {
-                Text("Miss Reason: ")
-                +
-                Text(metrics.shotResult.description)
-                    .fontWeight(.bold)
-//                                .foregroundStyle(.orange)
-            }
+            Text(metrics.shotResult.description)
+                .fontWeight(.bold)
+//            if metrics.shotResult != .score {
+//                Text("Miss Reason: ")
+//                +
+//                Text(metrics.shotResult.description)
+//                    .fontWeight(.bold)
+////                                .foregroundStyle(.orange)
+//            }
         }
         .foregroundStyle(.white)
         .padding()
