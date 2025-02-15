@@ -39,10 +39,7 @@ let package = Package(
         .executableTarget(
             name: "AppModule",
             path: ".",
-            resources: [
-                .copy("MLFile/HoopDetectorBeta13x13.mlmodelc"),
-                .process("Resources")
-            ]
+            resources: []
         )
     ],
     swiftLanguageVersions: [.v5]

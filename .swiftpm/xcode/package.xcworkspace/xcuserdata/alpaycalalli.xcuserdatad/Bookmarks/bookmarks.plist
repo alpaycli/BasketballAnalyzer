@@ -59,13 +59,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>137</string>
+					<string>130</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>136</string>
+					<string>129</string>
 					<key>Timestamp</key>
-					<string>760989272.669066</string>
+					<string>761218320.659755</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -81,16 +81,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>            //            .onChange(of: photo) { oldValue, newValue in
+				<string>                switch result {
 </string>
 				<key>leading</key>
-				<string>            .buttonStyle(.plain)
-            //            .photosPicker(isPresented: $showFileImporter, selection: $photo, matching: .videos)
+				<string>            }
+            .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
 </string>
 				<key>trailing</key>
-				<string>            //                if let newValue {
-            //                    handlePhotoPickerSelection(newValue)
-            //                }
+				<string>                case let .success(url):
+                    handleImportedVideoFileURL(url)
+                case let .failure(error):
 </string>
 			</dict>
 			<key>title</key>

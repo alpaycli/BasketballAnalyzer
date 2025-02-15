@@ -489,24 +489,24 @@ extension ContentAnalysisViewController {
 extension ContentAnalysisViewController {
     private func detectHoop(_ controller: CameraViewController, _ buffer: CMSampleBuffer, _ orientation: CGImagePropertyOrientation) throws {
         // This is where we detect the hoop.
-        let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
-        try visionHandler.perform([viewModel.hoopDetectionRequest])
-        var rect: CGRect?
-        var visionRect = CGRect.null
-        if let results = viewModel.hoopDetectionRequest.results as? [VNDetectedObjectObservation] {
-            // Filter out classification results with low confidence
-            let filteredResults = results
-                .filter { $0.confidence > 0.70 }
-            
-            if !filteredResults.isEmpty {
-                visionRect = filteredResults[0].boundingBox
-                rect = controller.viewRectForVisionRect(visionRect)
-            }
-        }
-        updateBoundingBox(hoopBoundingBox, withViewRect: rect, visionRect: visionRect)
-        if rect != nil {
-            gameManager.stateMachine.enter(GameManager.DetectedHoopState.self)
-        }
+//        let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
+//        try visionHandler.perform([viewModel.hoopDetectionRequest])
+//        var rect: CGRect?
+//        var visionRect = CGRect.null
+//        if let results = viewModel.hoopDetectionRequest.results as? [VNDetectedObjectObservation] {
+//            // Filter out classification results with low confidence
+//            let filteredResults = results
+//                .filter { $0.confidence > 0.70 }
+//            
+//            if !filteredResults.isEmpty {
+//                visionRect = filteredResults[0].boundingBox
+//                rect = controller.viewRectForVisionRect(visionRect)
+//            }
+//        }
+//        updateBoundingBox(hoopBoundingBox, withViewRect: rect, visionRect: visionRect)
+//        if rect != nil {
+//            gameManager.stateMachine.enter(GameManager.DetectedHoopState.self)
+//        }
     }
     
     private func setPointToMeterMultiplier(_ controller: CameraViewController, _ buffer: CMSampleBuffer, _ orientation: CGImagePropertyOrientation) throws {

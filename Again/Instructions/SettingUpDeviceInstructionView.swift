@@ -4,7 +4,6 @@ struct SettingUpDeviceInstructionView: View {
     @Binding var isShowGuidesView: Bool
     @State private var navigateToNext = false
     var body: some View {
-        NavigationStack {
             VStack {
                 Spacer()
                 Text("Setting up the device")
@@ -45,7 +44,7 @@ struct SettingUpDeviceInstructionView: View {
             .navigationDestination(isPresented: $navigateToNext) { 
                 SettingUpAngleInstructionsView(isShowGuidesView: $isShowGuidesView)
             }
-        }
+        
     }
 }
 

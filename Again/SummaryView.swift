@@ -74,16 +74,16 @@ struct SummaryView: View {
     var body: some View {
         VStack(spacing: 30) {
             Spacer()
-            Spacer()
-            HStack(spacing: 20) {
-                SummaryStatView(makesCount.formatted(), "makes")
-                Text("|").font(.largeTitle).foregroundStyle(.white)
-                SummaryStatView(attemptsCount.formatted(), "attempts")
-                Text("|").font(.largeTitle).foregroundStyle(.white)
-                SummaryStatView(String(format: "%.0f", shotAccuracy) + "%", "accuracy")
-            }
-            
             HStack(spacing: 40) {
+                SummaryStatView(makesCount.formatted(), "makes", isBigger: true)
+                Text("|").font(.system(size: 60)).foregroundStyle(.white)
+                SummaryStatView(attemptsCount.formatted(), "attempts", isBigger: true)
+                Text("|").font(.system(size: 60)).foregroundStyle(.white)
+                SummaryStatView(String(format: "%.0f", shotAccuracy) + " %", "accuracy", isBigger: true)
+            }
+            Spacer()
+            
+            HStack(spacing: 140) {
                 if let mostMissReason {
                     SummaryStatView(mostMissReason, "most miss \n reason")
                 }
@@ -127,7 +127,14 @@ struct SummaryView: View {
         Color.black.opacity(0.6)
             .ignoresSafeArea()
             
-        SummaryView(previewVC: .init())
+        SummaryView(
+            previewVC: nil,
+            makesCount: 5,
+            attemptsCount: 12,
+            mostMissReason: "Short",
+            avgReleaseAngle: 90,
+            avgBallSpeed: 10
+        )
     }
 }
 
@@ -135,23 +142,27 @@ struct SummaryStatView: View {
     let title: String
     let subtitle: String
     
-    init(title: String, subtitle: String) {
+    let isBigger: Bool
+    
+    init(title: String, subtitle: String, isBigger: Bool = false) {
         self.title = title
         self.subtitle = subtitle
+        self.isBigger = isBigger
     }
     
-    init(_ title: String, _ subtitle: String) {
+    init(_ title: String, _ subtitle: String, isBigger: Bool = false) {
         self.title = title
         self.subtitle = subtitle
+        self.isBigger = isBigger
     }
     
     var body: some View {
         VStack(alignment: .center) {
             Text(title)
-                .font(.largeTitle)
+                .font(isBigger ? .system(size: 90) : .system(size: 50))
                 .fontWeight(.bold)
             Text(subtitle)
-                .font(.title)
+                .font(.largeTitle)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
