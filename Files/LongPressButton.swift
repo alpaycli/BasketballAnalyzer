@@ -23,14 +23,14 @@ struct LongPressButton: View {
 
   var body: some View {
       VStack(spacing: 0) {
-              Text("Hold to Finish")
-                  .foregroundStyle(.white)
-                  .fontDesign(.serif)
-                  .transition(.opacity)
-                  .opacity(showText ? 1 : 0)
+          Text("Hold to Finish")
+              .foregroundStyle(.white)
+              .fontDesign(.serif)
+              .transition(.opacity)
+              .opacity(showText ? 1 : 0)
           Label("Finish", systemImage: "stop.circle")
-              .padding(.horizontal, 20)
-              .padding(.vertical, 10)
+              .padding(.horizontal, 40)
+              .padding(.vertical, 15)
               .foregroundStyle(.white)
               .fontWeight(.bold)
               .font(.headline.smallCaps())

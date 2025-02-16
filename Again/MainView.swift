@@ -452,6 +452,58 @@ extension ContentView {
             .toolbarVisibility(.hidden, for: .navigationBar)
         
     }
+    
+    private var mockContentViewWithLiveCamera: some View {
+        ContentAnalysisView(recordedVideoSource: nil, isTestMode: true, viewModel: viewModel)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
+            .overlay(alignment: .top) {
+                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
+                    Text(setupGuideLabel)
+                        .font(.largeTitle)
+                        .padding()
+                        .background(.thinMaterial, in: .rect(cornerRadius: 10))
+                        .foregroundStyle(.black)
+                } else if viewModel.isRecordingPermissionDenied {
+                    recordingDeniedLabel
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                closeButton
+                    .padding()
+            }
+            .overlay(alignment: .topTrailing) {
+                if !viewModel.isHoopPlaced || viewModel.manualHoopSelectorState == .inProgress {
+                    manualHoopSelectionButtons
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if showMetricsAndScore {
+                    makeAndAttemptsView
+                }
+            }
+            .overlay(alignment: .bottomLeading) {
+                if let lastShotMetrics = viewModel.lastShotMetrics, showMetricsAndScore {
+                    lastShotMetricsView(lastShotMetrics)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                // finish game button
+//                if !viewModel.isFinishButtonPressed, viewModel.isHoopPlaced {
+                    LongPressButton(duration: 0.4) {
+                        viewModel.isFinishButtonPressed = true
+                        shotPaths = viewModel.playerStats?.shotPaths ?? []
+                    }
+//                }
+            }
+            .overlay {
+                if showSetupStateLabels {
+                    setupStatesView
+                }
+            }
+            .toolbarVisibility(.hidden, for: .navigationBar)
+        
+    }
 }
 
 // MARK: - Methods
