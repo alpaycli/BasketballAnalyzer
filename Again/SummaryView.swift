@@ -71,7 +71,49 @@ struct SummaryView: View {
         self.avgBallSpeed = 0
     }
     
+    @State private var hideStats = false
+    
     var body: some View {
+        content
+            .opacity(hideStats ? 0 : 1)
+            .fullScreenCover(isPresented: $showPreviewController, onDismiss: {
+                print("preview dismissed")
+            }) {
+                if let previewVC {
+                    RPPreviewView(previewVC: previewVC)
+                        .ignoresSafeArea()
+                }
+            }
+            .overlay(alignment: .bottomLeading) {
+                Button(hideStats ? "Show Stats" : "Hide Stats") {
+                    hideStats.toggle()
+                }
+                .padding()
+                .tint(.blue)
+                .buttonBorderShape(.capsule)
+//                .foregroun
+            }
+    }
+}
+
+#Preview {
+    ZStack {
+        Color.black.opacity(0.6)
+            .ignoresSafeArea()
+            
+        SummaryView(
+            previewVC: nil,
+            makesCount: 5,
+            attemptsCount: 12,
+            mostMissReason: "Short",
+            avgReleaseAngle: 90,
+            avgBallSpeed: 10
+        )
+    }
+}
+
+extension SummaryView {
+    private var content: some View {
         VStack(spacing: 30) {
             Spacer()
             HStack(spacing: 40) {
@@ -102,7 +144,7 @@ struct SummaryView: View {
                     guard previewVC != nil else { return }
                     showPreviewController = true
                 }
-//                .disabled(previewVC == nil)
+                .disabled(previewVC == nil)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .tint(previewVC == nil ? Color.gray.opacity(0.6) : Color.green)
@@ -111,30 +153,6 @@ struct SummaryView: View {
                 .padding()
             }
         }
-        .fullScreenCover(isPresented: $showPreviewController, onDismiss: {
-            print("preview dismissed")
-        }) {
-            if let previewVC {
-                RPPreviewView(previewVC: previewVC)
-                    .ignoresSafeArea()
-            }
-        }
-    }
-}
-
-#Preview {
-    ZStack {
-        Color.black.opacity(0.6)
-            .ignoresSafeArea()
-            
-        SummaryView(
-            previewVC: nil,
-            makesCount: 5,
-            attemptsCount: 12,
-            mostMissReason: "Short",
-            avgReleaseAngle: 90,
-            avgBallSpeed: 10
-        )
     }
 }
 

@@ -888,16 +888,10 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
 //                else {
 //                    print("no preview window"); return
 //                }
+                // not needed now and toggle button too
                 previewVC = preview
                 
-//                presentSummaryView(previewVC: preview)
-                
-                toggleButton.setTitle("Toggle Overlay", for: .normal)
-                toggleButton.addTarget(self, action: #selector(toggleOverlay), for: .touchUpInside)
-                toggleButton.frame = CGRect(x: 50, y: 50, width: 150, height: 50)
-                toggleButton.backgroundColor = .systemOrange
-                view.addSubview(toggleButton)
-                view.bringSubviewToFront(toggleButton)
+                presentSummaryView(previewVC: preview)
             }
         default:
             break
@@ -908,41 +902,49 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
         previewController.dismiss(animated: true)
     }
     
-    @objc func toggleOverlay() {
-            if let overlayVC = overlayVC {
-                // Hide overlay
-                overlayVC.willMove(toParent: nil)
-                overlayVC.beginAppearanceTransition(false, animated: true)
-                overlayVC.view.removeFromSuperview()
-                overlayVC.endAppearanceTransition()
-                overlayVC.removeFromParent()
-                self.overlayVC = nil
-            } else {
-                // Show overlay
-                let newOverlay = UIHostingController(rootView: SummaryView(previewVC: previewVC, playerStats: self.playerStats))
-                newOverlay.view.frame = self.view.bounds
-                newOverlay.view.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-                
-                self.addChild(newOverlay)
-                newOverlay.beginAppearanceTransition(true, animated: true)
-                self.view.addSubview(newOverlay.view)
-                newOverlay.endAppearanceTransition()
-                newOverlay.didMove(toParent: self)
-                
-                self.overlayVC = newOverlay
-                self.view.bringSubviewToFront(toggleButton)
-            }
-        }
-    
     func presentSummaryView(previewVC: RPPreviewViewController?) {
-        let newOverlay = UIHostingController(rootView: SummaryView(previewVC: previewVC, playerStats: self.playerStats))
+        // Show overlay
+        let newOverlay = UIHostingController(
+            rootView: SummaryView(
+                previewVC: previewVC,
+                playerStats: self.playerStats
+            )
+        )
         newOverlay.view.frame = self.view.bounds
+        newOverlay.view.backgroundColor = UIColor.black.withAlphaComponent(0.4)
+        
         self.addChild(newOverlay)
         newOverlay.beginAppearanceTransition(true, animated: true)
-        newOverlay.view.backgroundColor = UIColor.black.withAlphaComponent(0.6)
         self.view.addSubview(newOverlay.view)
         newOverlay.endAppearanceTransition()
         newOverlay.didMove(toParent: self)
+        
+        self.overlayVC = newOverlay
+        self.view.bringSubviewToFront(toggleButton)
+    }
+    
+    func presentMockSummaryView() {
+        let newOverlay = UIHostingController(
+            rootView: SummaryView(
+                previewVC: previewVC,
+                makesCount: 5,
+                attemptsCount: 12,
+                mostMissReason: "Short",
+                avgReleaseAngle: 90,
+                avgBallSpeed: 10
+            )
+        )
+        newOverlay.view.frame = self.view.bounds
+        newOverlay.view.backgroundColor = UIColor.black.withAlphaComponent(0.4)
+        
+        self.addChild(newOverlay)
+        newOverlay.beginAppearanceTransition(true, animated: true)
+        self.view.addSubview(newOverlay.view)
+        newOverlay.endAppearanceTransition()
+        newOverlay.didMove(toParent: self)
+        
+        self.overlayVC = newOverlay
+        self.view.bringSubviewToFront(toggleButton)
     }
 }
 
