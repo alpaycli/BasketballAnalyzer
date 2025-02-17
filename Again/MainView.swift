@@ -298,7 +298,7 @@ extension ContentView {
             HStack {
                 Spacer()
                 NavigationLink {
-//                    SettingUpDeviceInstructionView()
+                    SettingUpDeviceInstructionView(isShowGuidesView: $isShowGuidesView)
                 } label: {
                     Text("Show Guides")
                 }
