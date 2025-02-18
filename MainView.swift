@@ -145,48 +145,6 @@ struct ContentView: View {
     }
 }
 
-struct HomeItemView: View {
-    let title: String
-    let systemImage: String
-    let bodyLabel: String
-    let buttonLabel: String
-    let buttonAction: () -> ()
-    
-    var body: some View {
-        RoundedRectangle(cornerRadius: 10)
-            .fill(Color.formForeground)
-            .frame(width: 400/*, height: 250*/)
-            .containerRelativeFrame(.vertical, { length, _ in
-                length / 4
-            })
-            .overlay {
-                VStack(spacing: 10) {
-                    Image(systemName: systemImage)
-                        .font(.largeTitle)
-                        .padding(.top)
-                    Text(title)
-                        .font(.title)
-                    
-                    Text(bodyLabel)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
-                        .multilineTextAlignment(.center)
-                    
-                    Button(action: buttonAction) {
-                        Text(buttonLabel)
-                            .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40)
-                            .background(.black, in: .rect(cornerRadius: 10))
-                            .foregroundStyle(.background)
-                            .fontWeight(.bold)
-                    }
-                    .padding()
-                }
-                .minimumScaleFactor(0.6)
-            }
-            .shadow(radius: 1)
-    }
-}
-
 // MARK: - Devices
 
 extension ContentView {
@@ -195,7 +153,11 @@ extension ContentView {
             Spacer()
             
             VStack(spacing: 30) {
-                HomeItemView(title: "Upload Video", 
+                GradientHomeItemView(title: "Test Mode", systemImage: "play", bodyLabel: "Test with my sample video to speed up the judgement process", buttonLabel: "Start Demo") {
+                    GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
+                    isTestMode = true
+                }
+                HomeItemView(title: "Upload Video",
                              systemImage: "square.and.arrow.up", 
                              bodyLabel: "Upload your basketball shooting video", 
                              buttonLabel: "Choose File") { showFileImporter = true }
@@ -206,75 +168,7 @@ extension ContentView {
                     
                     isLiveCameraSelected = true
                 }
-                
-                HomeItemView(title: "Test Mode", systemImage: "play", bodyLabel: "Test with my sample video to speed up the judgement process", buttonLabel: "Start Demo") { 
-                    GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
-                    isTestMode = true
-                }
             }
-            
-            /*
-            Button {
-                GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
-                isTestMode = true
-            } label: {
-                VStack(alignment: .leading) {
-                    Text("Test Mode")
-                        .fontWeight(.bold)
-                        .font(.largeTitle)
-                    
-                    Text("Test with my sample video to speed up the judgement process")
-                        .foregroundStyle(.secondary)
-                        .font(.title2)
-                }
-            }
-            .frame(width: 360, height: 160)
-            .background(.yellow, in: .rect(cornerRadius: 15))
-            .fontDesign(.rounded)
-            .padding(.bottom)
-            .overlay(alignment: .topTrailing) {
-                Image(systemName: "chevron.right")
-                    .padding()
-            }
-            
-            Button { showFileImporter = true } label: {
-                VStack(spacing: 5) {
-                    Image(systemName: "square.and.arrow.up")
-                    Text("Upload video")
-                }
-            }
-            .frame(width: 280, height: 150)
-            .background(Color.formForeground, in: .rect(cornerRadius: 15))
-            .foregroundStyle(.primary)
-            .fontWeight(.bold)
-            .font(.largeTitle)
-            .overlay(alignment: .topTrailing) {
-                Image(systemName: "chevron.right")
-                    .padding()
-            }
-            
-            Button {
-                GameManager.shared.reset()
-                GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)
-                
-                isLiveCameraSelected = true
-            } label: {
-                VStack(spacing: 5) {
-                    Image(systemName: "video")
-                    Text("Live Camera")
-                }
-            }
-            .frame(width: 280, height: 150)
-            .background(Color.formForeground, in: .rect(cornerRadius: 15))
-            .foregroundStyle(.primary)
-            .fontWeight(.bold)
-            .font(.largeTitle)
-            .overlay(alignment: .topTrailing) {
-                Image(systemName: "chevron.right")
-                    .padding()
-            }
-             */
-            
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -711,9 +605,4 @@ func viewPointConverted(fromNormalizedContentsPoint normalizedPoint: CGPoint) ->
     let convertedPoint = CGPoint(x: videoRect.origin.x + flippedPoint.x * videoRect.width,
                                  y: videoRect.origin.y + flippedPoint.y * videoRect.height)
     return convertedPoint
-}
-
-extension Color {
-    static let formBackground = Color("formBackgroundColor")
-    static let formForeground = Color("formForegroundColor")
 }

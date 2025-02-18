@@ -8,8 +8,13 @@ struct WelcomeView: View {
             VStack {
                 Spacer()
                 Spacer()
-                Text("Welcome  to ...")
-                    .font(.largeTitle)
+                Group {
+                    Text("Welcome to ")
+                    +
+                    Text("Splash30")
+                        .fontWeight(.bold)
+                }
+                .font(.largeTitle)
                 
                 Text("Your basketball shooting feedback asistant.")
                     .font(.title)
