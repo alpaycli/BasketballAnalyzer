@@ -17,6 +17,7 @@ struct SettingUpAngleInstructionsView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 HStack(alignment: .top) {
+                    Spacer()
                     VStack {
                         Image(systemName: "xmark.circle.fill")
                             .font(.largeTitle)
@@ -70,6 +71,7 @@ struct SettingUpAngleInstructionsView: View {
                         }
                         
                     }
+                    Spacer()
                 }
                 .padding(.horizontal, 40)
                 

@@ -11,7 +11,7 @@ struct SettingUpHoopInstructionView: View {
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .padding(.vertical)
-            Spacer()
+//            Spacer()
             
             TabView(selection: $selectedTabIndex) {
                 itemView("wrongHoopSetup1", "correctHoopSetup1")
@@ -24,6 +24,9 @@ struct SettingUpHoopInstructionView: View {
             .tabViewStyle(.page(indexDisplayMode: .always))
             .containerRelativeFrame(.horizontal) { length, _ in
                 length - 60
+            }
+            .containerRelativeFrame(.vertical) { length, _ in
+                length / 2
             }
 //            .background(Color.red)
             
