@@ -3,18 +3,27 @@ import SwiftUI
 struct WelcomeView: View {
     @Binding var isShow: Bool
     @State private var navigateToNext = false
+    
+    @State private var moveFrom = false 
     var body: some View {
         NavigationStack {
             VStack {
                 Spacer()
                 Spacer()
-                Group {
-                    Text("Welcome to ")
-                    +
-                    Text("Splash30")
-                        .fontWeight(.bold)
-                }
-                .font(.largeTitle)
+                
+                let title = Text("Splash30")
+                    .foregroundStyle(Color.accentColor)
+                    .fontWeight(.bold)
+                    .customAttribute(HighlightingEffectAttribute())
+                
+                Text("Welcome to \(title)")
+                    .font(.largeTitle)
+                    .textRenderer(HighlightingEffectRenderer(animationProgress: moveFrom ? 3 : -1))
+                    .onAppear {
+                        withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+                            moveFrom.toggle()
+                        }
+                    }
                 
                 Text("Your basketball shooting feedback asistant.")
                     .font(.title)

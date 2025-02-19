@@ -8,13 +8,13 @@ import PackageDescription
 import AppleProductTypes
 
 let package = Package(
-    name: "SwishVision30",
+    name: "Splash30",
     platforms: [
         .iOS("18.0")
     ],
     products: [
         .iOSApplication(
-            name: "SwishVision30",
+            name: "Splash30",
             targets: ["AppModule"],
             bundleIdentifier: "com.alpaycalalli.BasketballAnalyzer",
             teamIdentifier: "G8MSA22VSU",
