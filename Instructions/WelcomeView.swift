@@ -4,7 +4,8 @@ struct WelcomeView: View {
     @Binding var isShow: Bool
     @State private var navigateToNext = false
     
-    @State private var moveFrom = false 
+    @State private var moveFrom = false
+    @State private var showPortraitAlert = false
     var body: some View {
         NavigationStack {
             VStack {
@@ -42,13 +43,44 @@ struct WelcomeView: View {
                 .backgroundStyle(.blue)
                 .foregroundStyle(.white)
                 .fontWeight(.bold)
+                .disabled(showPortraitAlert)
                 Spacer()
                 
             }
             .navigationDestination(isPresented: $navigateToNext) {
                 SettingUpDeviceInstructionView(isShowGuidesView: $isShow)
             }
+            .onAppear {
+                guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+                withAnimation {
+                    showPortraitAlert = scene.interfaceOrientation.isPortrait
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+                guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+                withAnimation {
+                    showPortraitAlert = scene.interfaceOrientation.isPortrait
+                }
+            }
+            .overlay {
+                if showPortraitAlert {
+                    portraitAlertView
+                }
+            }
         }
+    }
+    private var portraitAlertView: some View {
+        VStack {
+            Image(systemName: "rectangle.landscape.rotate")
+                .font(.system(size: 80))
+                .padding()
+            Text("Rotate Device to Landscape")
+                .font(.title)
+        }
+        .fontWeight(.bold)
+        .frame(width: 300, height: 300, alignment: .center)
+        .background(.ultraThinMaterial, in: .rect(cornerRadius: 28, style: .continuous))
+        .shadow(radius: 15)
     }
 }
 

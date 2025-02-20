@@ -601,7 +601,7 @@ extension ContentAnalysisViewController {
                 
                 if viewPoints.first!.y > hoopRegion.maxY,
                    viewPoints.last!.y > hoopRegion.maxY {
-                    print("trajectory asagida baslayib asagida bitir, bosver")
+//                    print("trajectory asagida baslayib asagida bitir, bosver")
                     return
                 }
                 
@@ -706,7 +706,7 @@ extension ContentAnalysisViewController {
         
         // TODO: bu already yoxlanilir trajectory cekilen zaman
         if trajectoryPoints.first!.y > hoopRegion.maxY && trajectoryPoints.last!.y > hoopRegion.maxY {
-            print("trajectory asagida baslayib asagida bitir, bosver")
+//            print("trajectory asagida baslayib asagida bitir, bosver")
             trajectoryView.resetPath()
             return
         }

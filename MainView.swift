@@ -74,6 +74,8 @@ struct ContentView: View {
     
     @State private var isShowGuidesView = false
     
+    @State private var showPortraitAlert = false
+    
     var showMetricsAndScore: Bool {
         !isVideoEnded && !viewModel.isFinishButtonPressed
     }
@@ -97,17 +99,33 @@ struct ContentView: View {
                     #warning("delete later")
                 }
             }
+            .disabled(showPortraitAlert)
             .navigationDestination(isPresented: $isTestMode) {
                 contentViewWithRecordedVideo(isTestMode: isTestMode)
                     .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
+                    .overlay {
+                        if showPortraitAlert {
+                            portraitAlertView
+                        }
+                    }
             }
             .navigationDestination(item: $recordedVideoSource) { item in
                 contentViewWithRecordedVideo(item)
                     .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
+                    .overlay {
+                        if showPortraitAlert {
+                            portraitAlertView
+                        }
+                    }
             }
             .navigationDestination(isPresented: $isLiveCameraSelected) {
                 contentViewWithLiveCamera
                     .navigationTransition(.zoom(sourceID: "liveCameraZoom", in: namespace))
+                    .overlay {
+                        if showPortraitAlert {
+                            portraitAlertView
+                        }
+                    }
             }
             .fullScreenCover(isPresented: $isShowGuidesView) {
                 NavigationStack {
@@ -125,6 +143,28 @@ struct ContentView: View {
                 print("video ended in view", c.name.rawValue, c.name)
                 isVideoEnded = true
                 //                shotPaths = viewModel.playerStats?.shotPaths ?? []
+            }
+            .onAppear {
+                guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+                withAnimation {
+                    showPortraitAlert = scene.interfaceOrientation.isPortrait
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+                guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+                withAnimation {
+                    showPortraitAlert = scene.interfaceOrientation.isPortrait
+                    if scene.interfaceOrientation.isPortrait {
+                        isTestMode = false
+                        recordedVideoSource = nil
+                        isLiveCameraSelected = false
+                    }
+                }
+            }
+            .overlay {
+                if showPortraitAlert {
+                    portraitAlertView
+                }
             }
             .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
                 switch result {
@@ -477,6 +517,20 @@ extension ContentView {
         .labelStyle(.iconOnly)
         .font(.largeTitle)
         .background(.gray, in: .circle)
+    }
+    
+    private var portraitAlertView: some View {
+        VStack {
+            Image(systemName: "rectangle.landscape.rotate")
+                .font(.system(size: 80))
+                .padding()
+            Text("Rotate Device to Landscape")
+                .font(.title)
+        }
+        .fontWeight(.bold)
+        .frame(width: 300, height: 300, alignment: .center)
+        .background(.ultraThinMaterial, in: .rect(cornerRadius: 28, style: .continuous))
+        .shadow(radius: 15)
     }
     
     private var makeAndAttemptsView: some View {
