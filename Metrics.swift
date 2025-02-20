@@ -39,18 +39,15 @@ struct ShotMetrics: Equatable {
     let shotResult: ShotResult
     var speed: Double
     let releaseAngle: Double
-    let jumpshotType: JumpshotType
     
     init(
         shotResult: ShotResult = .miss(.none),
         speed: Double = 0.0,
-        releaseAngle: Double = 0.0,
-        jumpshotType: JumpshotType = .none
+        releaseAngle: Double = 0.0
     ) {
         self.shotResult = shotResult
         self.speed = speed
         self.releaseAngle = releaseAngle
-        self.jumpshotType = jumpshotType
     }
 }
 
@@ -131,17 +128,6 @@ struct PlayerStats: Equatable {
             releaseAngle = rightElbow.angleFromHorizontal(to: rightWrist)
         }
         return releaseAngle
-    }
-
-    mutating func getLastJumpshotType(poseObservations: [VNHumanBodyPoseObservation]) -> JumpshotType {
-//        guard let actionClassifier = try? PlayerActionClassifier(configuration: MLModelConfiguration()),
-//              let poseMultiArray = prepareInputWithObservations(poseObservations),
-//              let predictions = try? actionClassifier.prediction(poses: poseMultiArray),
-//              let throwType = ThrowType(rawValue: predictions.label.capitalized) else {
-//            return .none
-//        }
-//        return throwType
-        return .underhand
     }
 }
 

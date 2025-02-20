@@ -152,7 +152,7 @@ class ContentAnalysisViewController: UIViewController {
     
     // MARK: - States
     
-    #warning("lazimsizdi, setup statede track olunur onsuz")
+    // TODO: lazimsizdi, setup statede track olunur onsuz
     private var playerDetected = false
 
     private var setupComplete = false
@@ -372,9 +372,9 @@ class ContentAnalysisViewController: UIViewController {
         DispatchQueue.main.async {
             self.jointSegmentView.joints = joints
         }
-        // Store the body pose observation in playerStats when the game is in TrackThrowsState.
-        // We will use these observations for action classification once the throw is complete.
-        if gameManager.stateMachine.currentState is GameManager.TrackThrowsState {
+
+        
+        if gameManager.stateMachine.currentState is GameManager.TrackShotsState {
             storeBodyPoseObserarvations(observation)
             if trajectoryView.inFlight {
                 trajectoryInFlightPoseObservations += 1
@@ -395,12 +395,6 @@ class ContentAnalysisViewController: UIViewController {
         view.addSubview(trajectoryView)
         view.addSubview(manualHoopAreaSelectorView)
         view.addSubview(hoopSafeAreaView)
-//        gameStatusLabel.text = "Waiting for player"
-        // Set throw type counters
-//        underhandThrowView.throwType = .underhand
-//        overhandThrowView.throwType = .overhand
-//        underlegThrowView.throwType = .underleg
-//        scoreLabel.attributedText = getScoreLabelAttributedStringForScore(0)
     }
     
     private func configureView() {
@@ -472,7 +466,7 @@ extension ContentAnalysisViewController {
         }
         
         let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
-        if gameManager.stateMachine.currentState is GameManager.TrackThrowsState {
+        if gameManager.stateMachine.currentState is GameManager.TrackShotsState {
             detectTrajectory(visionHandler: visionHandler, controller)
         }
         
@@ -598,7 +592,7 @@ extension ContentAnalysisViewController {
                 var trajectoryPoints = NSOrderedSet(array: trajectoryView.uniquePoints).map({ $0 as! CGPoint })
                 trajectoryPoints = trajectoryPoints.filter { hoopSafeAreaView.frame.contains($0) }
                 
-                throwCompletedAction(controller, trajectoryPoints)
+                shotCompletedAction(controller, trajectoryPoints)
             }
         } else {
             for path in results where path.confidence > GameConstants.trajectoryDetectionMinConfidence {
@@ -687,13 +681,11 @@ extension ContentAnalysisViewController {
         let speed = round(trajectoryView.speed * gameManager.pointToMeterMultiplier * 2.24 * 100) / 100
         // getReleaseAngle ve getLastJumpshotTypein playerStatda olmagi da menasizdi onsuz, baxariq.
         let releaseAngle = playerStats.getReleaseAngle(poseObservations: poseObservations)
-        let jumpshotType = playerStats.getLastJumpshotType(poseObservations: poseObservations)
         
         lastShotMetrics = .init(
             shotResult: shotResult,
             speed: speed,
-            releaseAngle: releaseAngle,
-            jumpshotType: jumpshotType
+            releaseAngle: releaseAngle
         )
         
         playerStats.storeShotPath(trajectoryView.fullTrajectory.cgPath)
@@ -702,10 +694,10 @@ extension ContentAnalysisViewController {
         playerStats.adjustMetrics(isShotWentIn: shotResult == .score)
         playerStats.storeShotResult(lastShotMetrics.shotResult)
         
-        self.gameManager.stateMachine.enter(GameManager.ThrowCompletedState.self)
+        self.gameManager.stateMachine.enter(GameManager.ShotCompletedState.self)
     }
     
-    private func throwCompletedAction(_ controller: CameraViewController, _ trajectoryPoints: [CGPoint]) {
+    private func shotCompletedAction(_ controller: CameraViewController, _ trajectoryPoints: [CGPoint]) {
         guard !trajectoryPoints.isEmpty else {
             print("safe areada trajectory yoxdu")
             trajectoryView.resetPath()
@@ -814,12 +806,12 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             delegate?.showSetupGuide("All Good")
             setupStateModel.playerDetected = true
             delegate?.updateSetupState(setupStateModel)
-                self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
+                self.gameManager.stateMachine.enter(GameManager.TrackShotsState.self)
 //            }
-        case is GameManager.TrackThrowsState:
+        case is GameManager.TrackShotsState:
             trajectoryView.roi = cameraViewController.viewRectForVisionRect(.init(x: 0, y: 0.5, width: 1, height: 0.5))
             
-            // once it's entered to track throw state
+            // once it's entered to track shot state
             // trajectory view seems to become on top of hoopbounding box
             // which leads to not detection of tap gestures
             //
@@ -832,11 +824,11 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
             delegate?.updateSetupState(setupStateModel)
             
             if playerDetected {
-                self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
+                self.gameManager.stateMachine.enter(GameManager.TrackShotsState.self)
             } else {
                 gameManager.stateMachine.enter(GameManager.DetectingPlayerState.self)
             }
-        case is GameManager.ThrowCompletedState:
+        case is GameManager.ShotCompletedState:
             delegate?.showLastShowMetrics(metrics: lastShotMetrics, playerStats: playerStats)
 
             poseObservations = []
@@ -846,26 +838,8 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
                 EditHoopTip.showTip = true
             }
             
-//            print("after shot completed, here is lastShotMetrics:", lastShotMetrics)
-//            print(playerStats.allReleaseAngles.count)
-//            print("and player stats", playerStats)
-//            print("poseobservations.count", poseObservations.count)
-//            print("trajectoryview length", trajectoryView.points.count)
-//            print("_-_-_-_")
-//            self.updateKPILabels()
-//
-//            gameStatusLabel.text = lastThrowMetrics.score.rawValue > 0 ? "+\(lastThrowMetrics.score.rawValue)" : ""
-//            gameStatusLabel.perform(transitions: [.popUp, .popOut], durations: [0.25, 0.12], delayBetween: 1) {
-            #warning("maxShots can be changed to user's choice")
-            #warning("yada yox, live camera da stop buttona basilanda game manageri swiftui viewda showsummary state e soxmaq olar ele, ve gostermek")
-            #warning("ve video bitende")
-//            if self.playerStats.shotCount == GameConstants.maxShots {
-//                print("playerStats", playerStats.shotPaths.first)
-//                self.gameManager.stateMachine.enter(GameManager.ShowSummaryState.self)
-//            } else {
-                self.gameManager.stateMachine.enter(GameManager.TrackThrowsState.self)
-//            }
-//            }
+            self.gameManager.stateMachine.enter(GameManager.TrackShotsState.self)
+            
         case is GameManager.ShowSummaryState:
             // stop camera session if there's any
             cameraViewController.stopCameraSession()
@@ -875,7 +849,7 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
                     .map({ $0 as! CGPoint })
                     .filter { hoopSafeAreaView.frame.contains($0) }
                 
-                throwCompletedAction(cameraViewController, trajectoryPoints)
+                shotCompletedAction(cameraViewController, trajectoryPoints)
             }
             hoopBoundingBox.isHidden = true
             

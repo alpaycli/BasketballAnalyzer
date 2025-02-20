@@ -38,14 +38,6 @@ class TrajectoryView: UIView, AnimatedTransitioning {
 
     private var distanceWithCurrentTrajectory: CGFloat = 0
     
-    var isThrowComplete: Bool {
-        // Mark throw as complete if we don't get any trajectory observations in our roi
-        // for consecutive GameConstants.noObservationFrameLimit frames
-        if inFlight /*&& outOfROIPoints > GameConstants.noObservationFrameLimit*/ {
-            return true
-        }
-        return false
-    }
     
     private var isTrajectoryInTopOfScreen: Bool {
         if let middlePoint = points[safe: points.count / 2] {
@@ -140,7 +132,7 @@ class TrajectoryView: UIView, AnimatedTransitioning {
 //        print("distanceWithCurrentTrajectory", distanceWithCurrentTrajectory)
         if (roi.contains(trajectory.currentPoint) || (inFlight && roi.contains(startScaled))) {
             if !inFlight {
-                // This is the first trajectory detected for the throw. Compute the speed in pts/sec
+                // This is the first trajectory detected for the shot. Compute the speed in pts/sec
                 // Length of the trajectory is calculated by measuring the distance between the first and last point on the trajectory
                 // length = sqrt((final.x - start.x)^2 + (final.y - start.y)^2)
                 let trajectoryLength = trajectory.currentPoint.distance(to: startScaled)

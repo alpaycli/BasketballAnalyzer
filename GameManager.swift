@@ -49,10 +49,10 @@ class GameManager {
     class DetectedPlayerState: State {
     }
 
-    class TrackThrowsState: State {
+    class TrackShotsState: State {
     }
     
-    class ThrowCompletedState: State {
+    class ShotCompletedState: State {
     }
 
     class ShowSummaryState: State {
@@ -77,11 +77,11 @@ class GameManager {
             InactiveState([SetupCameraState.self]),
             SetupCameraState([DetectingHoopState.self]),
             DetectingHoopState([DetectedHoopState.self]),
-            DetectedHoopState([DetectingPlayerState.self, TrackThrowsState.self]),
+            DetectedHoopState([DetectingPlayerState.self, TrackShotsState.self]),
             DetectingPlayerState([DetectedPlayerState.self]),
-            DetectedPlayerState([TrackThrowsState.self]),
-            TrackThrowsState([ThrowCompletedState.self, ShowSummaryState.self, DetectingHoopState.self]),
-            ThrowCompletedState([ShowSummaryState.self, TrackThrowsState.self]),
+            DetectedPlayerState([TrackShotsState.self]),
+            TrackShotsState([ShotCompletedState.self, ShowSummaryState.self, DetectingHoopState.self]),
+            ShotCompletedState([ShowSummaryState.self, TrackShotsState.self]),
             ShowSummaryState([DetectingPlayerState.self])
         ]
         // Any state besides Inactive can be returned to Inactive.
