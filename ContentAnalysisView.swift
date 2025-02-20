@@ -512,7 +512,7 @@ extension ContentAnalysisViewController {
     private func setPointToMeterMultiplier(_ controller: CameraViewController, _ buffer: CMSampleBuffer, _ orientation: CGImagePropertyOrientation) throws {
         let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
         let contoursRequest = VNDetectContoursRequest()
-        contoursRequest.contrastAdjustment = 1.6 // the default contrast is 2.0 but in this case 1.6 gives us more reliable results
+        contoursRequest.contrastAdjustment = 1.6
         contoursRequest.regionOfInterest = hoopBoundingBox.visionRect
         try visionHandler.perform([contoursRequest])
         if let result = contoursRequest.results?.first as? VNContoursObservation {
