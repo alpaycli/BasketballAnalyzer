@@ -211,19 +211,11 @@ class ContentAnalysisViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         trajectoryView.roi = cameraViewController.viewRectForVisionRect(.init(x: 0, y: 0.5, width: 1, height: 0.5))
-        
-        if isTestMode {
-            testModePresetHoop()
-            
-            Task {
-                await EditHoopTip.viewAppearCount.donate()
-            }
-        }
     }
     
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        GameManager.shared.stateMachine.enter(GameManager.InactiveState.self)
+        gameManager.stateMachine.enter(GameManager.InactiveState.self)
         viewModel.reset()
         
         stopObservingStateChanges()
@@ -798,6 +790,13 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
     func gameManagerDidEnter(state: GameManager.State, from previousState: GameManager.State?) {
         print("stage", state)
         switch state {
+        case is GameManager.DetectingHoopState where isTestMode:
+            testModePresetHoop()
+            
+            Task {
+                await EditHoopTip.viewAppearCount.donate()
+            }
+            
         case is GameManager.DetectedPlayerState:
             playerDetected = true
 //            playerStats.reset()

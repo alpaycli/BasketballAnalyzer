@@ -99,7 +99,7 @@ struct ContentView: View {
                     #warning("delete later")
                 }
             }
-            .disabled(showPortraitAlert)
+            .disabled(showPortraitAlert || GameManager.shared.stateMachine.currentState is GameManager.TrackShotsState)
             .navigationDestination(isPresented: $isTestMode) {
                 contentViewWithRecordedVideo(isTestMode: isTestMode)
                     .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
