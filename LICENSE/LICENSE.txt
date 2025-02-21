@@ -1,4 +1,4 @@
-App contains code derived from Apple's sample project.
+App contains code from Apple's sample "Action & Vision" app.
 
 The code is covered under the following license:
 

@@ -8,12 +8,6 @@
 import Vision
 import Foundation
 
-enum JumpshotType: String, CaseIterable {
-    case underhand = "Underhand"
-    case normal = "Normal"
-    case none = "None"
-}
-
 enum ShotResult: Equatable {
     case score
     case miss(ShotMissReason)

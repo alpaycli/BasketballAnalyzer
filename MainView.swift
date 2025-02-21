@@ -522,12 +522,13 @@ extension ContentView {
             Image(systemName: "rectangle.landscape.rotate")
                 .font(.system(size: 80))
                 .padding()
+                .symbolEffect(.breathe)
             Text("Rotate Device to Landscape")
                 .font(.title)
         }
         .fontWeight(.bold)
         .frame(width: 300, height: 300, alignment: .center)
-        .background(.ultraThinMaterial, in: .rect(cornerRadius: 28, style: .continuous))
+        .background(.ultraThinMaterial, in: .rect(cornerRadius: 25, style: .continuous))
         .shadow(radius: 15)
     }
     
