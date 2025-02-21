@@ -223,6 +223,7 @@ class ContentAnalysisViewController: UIViewController {
     
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        GameManager.shared.stateMachine.enter(GameManager.InactiveState.self)
         viewModel.reset()
         
         stopObservingStateChanges()
@@ -286,7 +287,7 @@ class ContentAnalysisViewController: UIViewController {
         let point: CGPoint = .init(x: hoopBoundingBox.visionRect.minX, y: hoopBoundingBox.visionRect.midY)
         // It's used for showing Tip in SwiftUI view.
         viewModel.hoopCenterPoint = viewPointConverted(fromNormalizedContentsPoint: point)
-        
+        print("vvv", gameManager.stateMachine.currentState)
         self.gameManager.stateMachine.enter(GameManager.DetectedHoopState.self)
     }
     

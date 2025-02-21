@@ -27,6 +27,7 @@ class ContentViewModel {
     var setupStateModel = SetupStateModel()
     var isFinishButtonPressed = false
     var isRecordingPermissionDenied = false
+    var isVideoEnded = false
     
 //    var hoopDetectionRequest: VNCoreMLRequest
     
@@ -38,6 +39,7 @@ class ContentViewModel {
         setupStateModel = .init()
         isFinishButtonPressed = false
         isRecordingPermissionDenied = false
+        isVideoEnded = false
     }
     
     var isHoopPlaced: Bool {
@@ -69,15 +71,13 @@ struct ContentView: View {
         
         return !viewModel.setupStateModel.isAllDone
     }
-    
-    @State private var isVideoEnded = false
-    
+        
     @State private var isShowGuidesView = false
     
     @State private var showPortraitAlert = false
     
     var showMetricsAndScore: Bool {
-        !isVideoEnded && !viewModel.isFinishButtonPressed
+        !viewModel.isVideoEnded && !viewModel.isFinishButtonPressed
     }
     
     var pub = NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
@@ -141,7 +141,7 @@ struct ContentView: View {
             }
             .onReceive(pub) { c in
                 print("video ended in view", c.name.rawValue, c.name)
-                isVideoEnded = true
+                viewModel.isVideoEnded = true
                 //                shotPaths = viewModel.playerStats?.shotPaths ?? []
             }
             .onAppear {
@@ -509,9 +509,7 @@ extension ContentView {
             
             shotPaths = []
 //            viewModel.reset()
-            isVideoEnded = false
-            
-            GameManager.shared.stateMachine.enter(GameManager.InactiveState.self)
+//            GameManager.shared.stateMachine.enter(GameManager.InactiveState.self)
         }
         .padding()
         .labelStyle(.iconOnly)
