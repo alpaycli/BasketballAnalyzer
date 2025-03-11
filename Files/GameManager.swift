@@ -62,7 +62,6 @@ class GameManager {
     
     let stateMachine: GKStateMachine
     var hoopRegion = CGRect.null
-    var holeRegion = CGRect.null
     var recordedVideoSource: AVAsset?
     var playerStats = PlayerStats()
 //    var lastShotMetrics = ShotMetrics()
@@ -105,6 +104,7 @@ class GameManager {
             notificationCenter.removeObserver(observer)
         }
         activeObservers.removeAll()
+        
         stateMachine.enter(InactiveState.self)
     }
 }

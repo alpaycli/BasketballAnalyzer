@@ -18,10 +18,6 @@ struct RPPreviewView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> RPPreviewViewController {
         previewVC.previewControllerDelegate = context.coordinator
         
-        //                preview.modalPresentationStyle = .overFullScreen
-        
-        //                self.present(preview, animated: true)
-        
         return previewVC
     }
     

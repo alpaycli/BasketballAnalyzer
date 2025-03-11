@@ -60,15 +60,15 @@ struct OnboardingTextTransition: Transition {
 }
 
 extension Text.Layout {
-  var flattenedRuns: some RandomAccessCollection<Text.Layout.Run> {
-    self.flatMap { line in
-      line
+    var flattenedRuns: some RandomAccessCollection<Text.Layout.Run> {
+        self.flatMap { line in
+            line
+        }
     }
-  }
-
-  var flattenedRunSlices: some RandomAccessCollection<Text.Layout.RunSlice> {
-    flattenedRuns.flatMap(\.self)
-  }
+    
+    var flattenedRunSlices: some RandomAccessCollection<Text.Layout.RunSlice> {
+        flattenedRuns.flatMap(\.self)
+    }
 }
 
 struct ColorfulRender: TextRenderer {
@@ -86,4 +86,3 @@ struct ColorfulRender: TextRenderer {
         }
     }
 }
-

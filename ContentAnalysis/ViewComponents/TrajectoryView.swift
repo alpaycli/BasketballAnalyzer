@@ -10,13 +10,6 @@ import Vision
 import SwiftUI
 import SpriteKit
 
-extension Collection {
-    // Returns the element at the specified index if it is within bounds, otherwise nil.
-    subscript(safe index: Index) -> Element? {
-        indices.contains(index) ? self[index] : nil
-    }
-}
-
 class TrajectoryView: UIView, AnimatedTransitioning {
     var roi = CGRect.null
     var inFlight = false
@@ -26,9 +19,7 @@ class TrajectoryView: UIView, AnimatedTransitioning {
     var uniquePoints: [CGPoint] = []
     var points: [VNPoint] = [] {
         didSet {
-//            if isTrajectoryInTopOfScreen {
-                updatePathLayer()
-//            }
+            updatePathLayer()
         }
     }
     
@@ -37,7 +28,6 @@ class TrajectoryView: UIView, AnimatedTransitioning {
     private let shadowLayer = CAShapeLayer()
 
     private var distanceWithCurrentTrajectory: CGFloat = 0
-    
     
     private var isTrajectoryInTopOfScreen: Bool {
         if let middlePoint = points[safe: points.count / 2] {
@@ -123,20 +113,12 @@ class TrajectoryView: UIView, AnimatedTransitioning {
             distanceWithCurrentTrajectory = startScaled.distance(to: fullTrajectory.currentPoint)
         }
         
-//        print("1.", roi.contains(trajectory.currentPoint), "roi:", roi, ".contains(", trajectory.currentPoint, ")")
-//        print("2.", (inFlight && roi.contains(startScaled)), "inFlight:", inFlight, "roi:", roi, ".contains(", startScaled, ")")
-//        print("3.", distanceWithCurrentTrajectory < GameConstants.maxDistanceWithCurrentTrajectory, "distanceWithCurrentTrajectory:", distanceWithCurrentTrajectory, "maxDistanceWithCurrentTrajectory:", GameConstants.maxDistanceWithCurrentTrajectory)
-//        print("---")
-//
-        
-//        print("distanceWithCurrentTrajectory", distanceWithCurrentTrajectory)
         if (roi.contains(trajectory.currentPoint) || (inFlight && roi.contains(startScaled))) {
             if !inFlight {
                 // This is the first trajectory detected for the shot. Compute the speed in pts/sec
                 // Length of the trajectory is calculated by measuring the distance between the first and last point on the trajectory
                 // length = sqrt((final.x - start.x)^2 + (final.y - start.y)^2)
                 let trajectoryLength = trajectory.currentPoint.distance(to: startScaled)
-//                print("trajectorylength", trajectoryLength)
                 
                 // Speed is computed by dividing the length of the trajectory with the duration for the trajectory
                 speed = Double(trajectoryLength) / duration

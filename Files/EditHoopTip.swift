@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  EditHoopTip.swift
 //  BasketballAnalyzer
 //
 //  Created by Alpay Calalli on 11.02.25.

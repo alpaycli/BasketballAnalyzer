@@ -2,12 +2,14 @@ import UIKit
 import AVFoundation
 
 // MARK: - Coordinates conversion
+
 protocol NormalizedGeometryConverting {
     func viewRectConverted(fromNormalizedContentsRect normalizedRect: CGRect) -> CGRect
     func viewPointConverted(fromNormalizedContentsPoint normalizedPoint: CGPoint) -> CGPoint
 }
 
 // MARK: - View to display live camera feed
+
 class CameraFeedView: UIView, NormalizedGeometryConverting {
     private var previewLayer: AVCaptureVideoPreviewLayer!
     
@@ -41,6 +43,7 @@ class CameraFeedView: UIView, NormalizedGeometryConverting {
 }
 
 // MARK: - View for rendering video file contents
+
 class VideoRenderView: UIView, NormalizedGeometryConverting {
     private var renderLayer: AVPlayerLayer!
     

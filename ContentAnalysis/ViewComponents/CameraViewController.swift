@@ -5,29 +5,8 @@
 //  Created by Alpay Calalli on 18.12.24.
 //
 
-import SwiftUI
 import UIKit
 import AVFoundation
-
-//struct CameraView: UIViewControllerRepresentable {
-//    let recordedVideoAsset: AVAsset?
-//    func makeUIViewController(context: Context) -> CameraViewController {
-//        let vc = CameraViewController()
-//        if let recordedVideoAsset {
-//            vc.startReadingAsset(recordedVideoAsset)
-////            vc.stopCameraSession()
-//        }
-//        
-//        return vc
-//    }
-//    
-//    func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {
-//        if let recordedVideoAsset {
-//            uiViewController.startReadingAsset(recordedVideoAsset)
-////            uiViewController.stopCameraSession()
-//        }
-//    }
-//}
 
 protocol CameraViewControllerOutputDelegate: AnyObject {
     func cameraViewController(_ controller: CameraViewController,
@@ -235,7 +214,7 @@ class CameraViewController: UIViewController {
         displayLink.add(to: RunLoop.current, forMode: .default)
         
         guard let track = asset.tracks(withMediaType: .video).first else {
-//            AppError.display(AppError.videoReadingError(reason: "No video tracks found in AVAsset."), inViewController: self)
+            AppError.display(AppError.videoReadingError(reason: "No video tracks found in AVAsset."), inViewController: self)
             return
         }
         
@@ -315,22 +294,6 @@ class CameraViewController: UIViewController {
         }
     }
 }
-
-//extension CameraViewController: GameStateChangeObserver {
-//    func gameManagerDidEnter(state: GameManager.State, from previousState: GameManager.State?) {
-//        if state is GameManager.SetupCameraState {
-//            do {
-//                if let video = gameManager.recordedVideoSource {
-//                    startReadingAsset(video)
-//                } else {
-//                    try setupAVSession()
-//                }
-//            } catch {
-//                AppError.display(error, inViewController: self)
-//            }
-//        }
-//    }
-//}
 
 extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {

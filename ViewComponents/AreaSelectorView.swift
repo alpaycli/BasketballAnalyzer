@@ -11,7 +11,6 @@ enum AreaSelectorState {
     case none
     case inProgress
     case set
-//    case done
 }
 
 class AreaSelectorView: UIView {

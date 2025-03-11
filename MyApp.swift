@@ -8,7 +8,6 @@ struct MyApp: App {
 //        try? Tips.resetDatastore()
         try? Tips.configure(
             [
-                .displayFrequency(.immediate),
                 .datastoreLocation(.applicationDefault)
             ]
         )
@@ -16,7 +15,7 @@ struct MyApp: App {
     @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
                 .fullScreenCover(isPresented: $isFirstLaunch) {
                     WelcomeView(isShow: $isFirstLaunch)
                 }
