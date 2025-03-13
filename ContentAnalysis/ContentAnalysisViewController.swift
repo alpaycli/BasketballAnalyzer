@@ -10,13 +10,8 @@ import ReplayKit
 import AVFoundation
 import SwiftUI
 
-protocol ContentAnalysisVCDelegate: AnyObject {
-    func showLastShowMetrics(metrics: ShotMetrics, playerStats: PlayerStats)
-}
-
 class ContentAnalysisViewController: UIViewController {
     
-    private weak var delegate: ContentAnalysisVCDelegate?
     private let gameManager = GameManager.shared
     private let viewModel: ContentViewModel
     private let isTestMode: Bool
@@ -55,31 +50,22 @@ class ContentAnalysisViewController: UIViewController {
     }
     
     private let trajectoryQueue = DispatchQueue(label: "trajectoryRequestQueue", qos: .userInteractive)
-    
-    private var poseObservations: [VNHumanBodyPoseObservation] = []
-    
+        
     private var trajectoryInFlightPoseObservations = 0
     
     /// Counts of frame when there is no detected trajectory observation.
     private var noObservationFrameCount = 0
-    
-    private var playerStats = PlayerStats()
-    private var lastShotMetrics = ShotMetrics()
-    
+        
     // MARK: - Init
     
     init(
         recordedVideoSource: AVAsset?,
         isTestMode: Bool,
-        viewModel: ContentViewModel,
-        delegate: ContentAnalysisVCDelegate,
-        cameraVCDelegate: CameraViewControllerOutputDelegate
+        viewModel: ContentViewModel
     ) {
         self.recordedVideoSource = recordedVideoSource
         self.isTestMode = isTestMode
         self.viewModel = viewModel
-        self.delegate = delegate
-        self.cameraViewController.outputDelegate = cameraVCDelegate
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -137,10 +123,9 @@ class ContentAnalysisViewController: UIViewController {
 
         // Reset values
         trajectoryView.resetPath()
-        lastShotMetrics = .init()
-        playerStats = .init()
         
-        delegate?.showLastShowMetrics(metrics: lastShotMetrics, playerStats: playerStats)
+        viewModel.lastShotMetrics = nil
+        viewModel.playerStats.reset()
         
         await cameraViewController.restartVideo()
         
@@ -177,10 +162,8 @@ class ContentAnalysisViewController: UIViewController {
         
         // Reset values
         trajectoryView.resetPath()
-        lastShotMetrics = .init()
-        playerStats = .init()
-        
-        delegate?.showLastShowMetrics(metrics: lastShotMetrics, playerStats: playerStats)
+        viewModel.lastShotMetrics = nil
+        viewModel.playerStats.reset()
         
         await cameraViewController.restartVideo()
         
@@ -264,7 +247,7 @@ class ContentAnalysisViewController: UIViewController {
 
         
         if gameManager.stateMachine.currentState is GameManager.TrackShotsState {
-            storeBodyPoseObserarvations(observation)
+            viewModel.playerStats.storeBodyPoseObservation(observation)
             if trajectoryView.inFlight {
                 trajectoryInFlightPoseObservations += 1
             }
@@ -304,6 +287,7 @@ class ContentAnalysisViewController: UIViewController {
     
     private func configureCameraView() {
         
+        cameraViewController.outputDelegate = self
         // Set up the video layers.
         cameraViewController.view.frame = view.bounds
         addChild(cameraViewController)
@@ -342,66 +326,6 @@ class ContentAnalysisViewController: UIViewController {
             }
         } catch {
             AppError.display(error, inViewController: self)
-        }
-    }
-}
-
-// MARK: - CameraViewController delegate action
-
-extension ContentAnalysisViewController {
-    func cameraVCDelegateAction(
-        _ controller: CameraViewController,
-        didReceiveBuffer buffer: CMSampleBuffer,
-        orientation: CGImagePropertyOrientation
-    ) {
-        
-        // It's needed for calculating the speed of the ball.
-        if gameManager.pointToMeterMultiplier.isNaN, !hoopRegion.isEmpty {
-            do {
-                try setPointToMeterMultiplier(controller, buffer, orientation)
-            } catch {
-                print("detect hoop contours error", error)
-            }
-        }
-        
-        let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
-        if gameManager.stateMachine.currentState is GameManager.TrackShotsState {
-            detectTrajectory(visionHandler: visionHandler, controller)
-        }
-        
-        if !(self.trajectoryView.inFlight && self.trajectoryInFlightPoseObservations >= GameConstants.maxTrajectoryInFlightPoseObservations) {
-            detectPlayer(visionHandler: visionHandler, controller)
-        } else {
-            hidePlayerBoundingBox()
-        }
-    }
-    
-    private func setPointToMeterMultiplier(
-        _ controller: CameraViewController,
-        _ buffer: CMSampleBuffer,
-        _ orientation: CGImagePropertyOrientation
-    ) throws {
-        let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
-        let contoursRequest = VNDetectContoursRequest()
-        contoursRequest.contrastAdjustment = 1.6
-        contoursRequest.regionOfInterest = hoopBoundingBox.visionRect
-        try visionHandler.perform([contoursRequest])
-        if let result = contoursRequest.results?.first as? VNContoursObservation {
-            let hoopPath = result.normalizedPath
-            
-            DispatchQueue.main.sync {
-                // Save hoop region
-                hoopRegion = hoopBoundingBox.frame
-                gameManager.hoopRegion = hoopBoundingBox.frame
-                // Calculate hoop length based on the bounding box of the edge.
-                let edgeNormalizedBB = hoopPath.boundingBox
-                // Convert normalized bounding box size to points.
-                let edgeSize = CGSize(width: edgeNormalizedBB.width * hoopBoundingBox.frame.width,
-                                      height: edgeNormalizedBB.height * hoopBoundingBox.frame.height)
-                
-                let hoopLength = hypot(edgeSize.width, edgeSize.height)
-                self.gameManager.pointToMeterMultiplier = GameConstants.hoopLength / Double(hoopLength)
-            }
         }
     }
 }
@@ -486,12 +410,12 @@ extension ContentAnalysisViewController {
     }
     
     private func showAllTrajectories() {
-        for (index, path) in playerStats.shotPaths.enumerated() {
+        for (index, path) in viewModel.playerStats.shotPaths.enumerated() {
             let trajectoryView = TrajectoryView(frame: view.bounds)
             trajectoryView.frame = cameraViewController.viewRectForVisionRect(.init(x: 0, y: 0, width: 1, height: 1))
             view.addSubview(trajectoryView)
             
-            let isShotWentIn = playerStats.shotResults[index] == .score
+            let isShotWentIn = viewModel.playerStats.shotResults[index] == .score
             trajectoryView.addPath(path, color: isShotWentIn ? .green : .red)
             view.bringSubviewToFront(trajectoryView)
         }
@@ -543,19 +467,20 @@ extension ContentAnalysisViewController {
     ) {
         // Compute the speed in mph
         let speed = round(trajectoryView.speed * gameManager.pointToMeterMultiplier * 2.24 * 100) / 100
-        let releaseAngle = playerStats.getReleaseAngle(poseObservations: poseObservations)
+        let releaseAngle = viewModel.playerStats.getReleaseAngle()
         
-        lastShotMetrics = .init(
+        let lastShotMetrics = ShotMetrics(
             shotResult: shotResult,
             speed: speed,
             releaseAngle: releaseAngle
         )
+        viewModel.lastShotMetrics = lastShotMetrics
         
-        playerStats.storeShotPath(trajectoryView.fullTrajectory.cgPath)
-        playerStats.storeShotSpeed(speed)
-        playerStats.storeReleaseAngle(releaseAngle)
-        playerStats.adjustMetrics(isShotWentIn: shotResult == .score)
-        playerStats.storeShotResult(lastShotMetrics.shotResult)
+        viewModel.playerStats.storeShotPath(trajectoryView.fullTrajectory.cgPath)
+        viewModel.playerStats.storeShotSpeed(speed)
+        viewModel.playerStats.storeReleaseAngle(releaseAngle)
+        viewModel.playerStats.adjustMetrics(isShotWentIn: shotResult == .score)
+        viewModel.playerStats.storeShotResult(lastShotMetrics.shotResult)
         
         gameManager.stateMachine.enter(GameManager.ShotCompletedState.self)
     }
@@ -616,13 +541,6 @@ extension ContentAnalysisViewController {
         updatePlayerStats(controller, shotResult: shotResult)
         trajectoryView.resetPath()
     }
-    
-    private func storeBodyPoseObserarvations(_ observation: VNHumanBodyPoseObservation) {
-        if poseObservations.count >= GameConstants.maxPoseObservations {
-            poseObservations.removeFirst()
-        }
-        poseObservations.append(observation)
-    }
 }
 
 // MARK: - Game state
@@ -664,12 +582,13 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
                 gameManager.stateMachine.enter(GameManager.DetectingPlayerState.self)
             }
         case is GameManager.ShotCompletedState:
-            delegate?.showLastShowMetrics(metrics: lastShotMetrics, playerStats: playerStats)
+//            viewModel.lastShotMetrics = lastShotMetrics
+//            viewModel.playerStats = playerStats
 
-            poseObservations = []
+            viewModel.playerStats.resetPoseObservations()
             trajectoryInFlightPoseObservations = 0
             
-            if isTestMode && playerStats.shotCount == 2 {
+            if isTestMode && viewModel.playerStats.shotCount == 2 {
                 EditHoopTip.showTip = true
             }
             
@@ -699,16 +618,16 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
         }
     }
     
-    func previewControllerDidFinish(_ previewController: RPPreviewViewController) {
+    private func previewControllerDidFinish(_ previewController: RPPreviewViewController) {
         previewController.dismiss(animated: true)
     }
     
-    func presentSummaryView(previewVC: RPPreviewViewController?) {
+    private func presentSummaryView(previewVC: RPPreviewViewController?) {
         // Show overlay
         let newOverlay = UIHostingController(
             rootView: SummaryView(
                 previewVC: previewVC,
-                playerStats: self.playerStats
+                playerStats: viewModel.playerStats
             )
         )
         newOverlay.view.frame = self.view.bounds
@@ -722,7 +641,7 @@ extension ContentAnalysisViewController: GameStateChangeObserver {
     }
     
     // For testing purposes
-    func presentMockSummaryView(previewVC: RPPreviewViewController) {
+    private func presentMockSummaryView(previewVC: RPPreviewViewController) {
         let newOverlay = UIHostingController(
             rootView: SummaryView(
                 previewVC: previewVC,
@@ -763,5 +682,73 @@ extension ContentAnalysisViewController: UIContextMenuInteractionDelegate {
                 return UIMenu(title: "", children: [editAction])
             }
         )
+    }
+}
+
+extension ContentAnalysisViewController: CameraViewControllerOutputDelegate {
+    func cameraViewController(
+        _ controller: CameraViewController,
+        didReceiveBuffer buffer: CMSampleBuffer,
+        orientation: CGImagePropertyOrientation
+    ) {
+        cameraVCDelegateAction(controller, didReceiveBuffer: buffer, orientation: orientation)
+    }
+    
+    private func cameraVCDelegateAction(
+        _ controller: CameraViewController,
+        didReceiveBuffer buffer: CMSampleBuffer,
+        orientation: CGImagePropertyOrientation
+    ) {
+        
+        if gameManager.pointToMeterMultiplier.isNaN, !hoopRegion.isEmpty {
+            do {
+                try setPointToMeterMultiplier(controller, buffer, orientation)
+            } catch {
+                print("detect hoop contours error", error)
+            }
+        }
+        
+        let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
+        if gameManager.stateMachine.currentState is GameManager.TrackShotsState {
+            detectTrajectory(visionHandler: visionHandler, controller)
+        }
+        
+        if !(self.trajectoryView.inFlight && self.trajectoryInFlightPoseObservations >= GameConstants.maxTrajectoryInFlightPoseObservations) {
+            detectPlayer(visionHandler: visionHandler, controller)
+        } else {
+            hidePlayerBoundingBox()
+        }
+    }
+    
+    /// Calculates the point-to-meter multiplier and sets it to the `GameManager`.
+    ///
+    /// It is used for calculating the speed of the ball.
+    private func setPointToMeterMultiplier(
+        _ controller: CameraViewController,
+        _ buffer: CMSampleBuffer,
+        _ orientation: CGImagePropertyOrientation
+    ) throws {
+        let visionHandler = VNImageRequestHandler(cmSampleBuffer: buffer, orientation: orientation, options: [:])
+        let contoursRequest = VNDetectContoursRequest()
+        contoursRequest.contrastAdjustment = 1.6
+        contoursRequest.regionOfInterest = hoopBoundingBox.visionRect
+        try visionHandler.perform([contoursRequest])
+        if let result = contoursRequest.results?.first as? VNContoursObservation {
+            let hoopPath = result.normalizedPath
+            
+            DispatchQueue.main.sync {
+                // Save hoop region
+                hoopRegion = hoopBoundingBox.frame
+                gameManager.hoopRegion = hoopBoundingBox.frame
+                // Calculate hoop length based on the bounding box of the edge.
+                let edgeNormalizedBB = hoopPath.boundingBox
+                // Convert normalized bounding box size to points.
+                let edgeSize = CGSize(width: edgeNormalizedBB.width * hoopBoundingBox.frame.width,
+                                      height: edgeNormalizedBB.height * hoopBoundingBox.frame.height)
+                
+                let hoopLength = hypot(edgeSize.width, edgeSize.height)
+                self.gameManager.pointToMeterMultiplier = GameConstants.hoopLength / Double(hoopLength)
+            }
+        }
     }
 }

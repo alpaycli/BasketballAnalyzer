@@ -31,7 +31,7 @@ enum ShotResult: Equatable {
 
 struct ShotMetrics: Equatable {
     let shotResult: ShotResult
-    var speed: Double
+    let speed: Double
     let releaseAngle: Double
     
     init(
@@ -43,26 +43,32 @@ struct ShotMetrics: Equatable {
         self.speed = speed
         self.releaseAngle = releaseAngle
     }
+    
+    
 }
 
 
 struct PlayerStats: Equatable {
     private(set) var totalScore = 0
     private(set) var shotCount = 0
+    
     var topSpeed: Double {
         allSpeeds.max() ?? 0
     }
+    
     var avgReleaseAngle: Double? {
         guard !allSpeeds.isEmpty else { return nil }
         let sum = Int(allReleaseAngles.reduce(0, +))
         return Double(sum / allReleaseAngles.count)
     }
+    
     var avgSpeed: Double? {
         let allSpeeds = allSpeeds.filter({ $0.isNormal })
         guard !allSpeeds.isEmpty else { return nil }
         let sum = Int(allSpeeds.reduce(0, +))
         return Double(sum / allSpeeds.count)
     }
+    
     var mostMissReason: String? {
         shotResults
             .filter {
@@ -77,15 +83,21 @@ struct PlayerStats: Equatable {
             .mostFrequentElement()
     }
     
-//    var poseObservations = [VNHumanBodyPoseObservation]()
     private(set) var shotPaths: [CGPath] = []
     private(set) var allSpeeds: [Double] = []
     private(set) var allReleaseAngles: [Double] = []
     private(set) var shotResults: [ShotResult] = []
+    private(set) var poseObservations = [VNHumanBodyPoseObservation]()
     
-//    var allReleaseSpeeds: [Double] = [] // or durations
-//    var topReleaseSpeed = 0.0 // or duration
-//    var avgReleaseSpeed = 0.0 // or duration
+    mutating func reset() {
+        totalScore = 0
+        shotCount = 0
+        shotPaths = []
+        allSpeeds = []
+        allReleaseAngles = []
+        shotResults = []
+        poseObservations = []
+    }
     
     mutating func adjustMetrics(isShotWentIn: Bool) {
         shotCount += 1
@@ -110,7 +122,18 @@ struct PlayerStats: Equatable {
         shotResults.append(shotResult)
     }
     
-    func getReleaseAngle(poseObservations: [VNHumanBodyPoseObservation]) -> Double {
+    mutating func storeBodyPoseObservation(_ observation: VNHumanBodyPoseObservation) {
+        if poseObservations.count >= GameConstants.maxPoseObservations {
+            poseObservations.removeFirst()
+        }
+        poseObservations.append(observation)
+    }
+    
+    mutating func resetPoseObservations() {
+        poseObservations = []
+    }
+    
+    func getReleaseAngle() -> Double {
         var releaseAngle: Double = 0.0
         if !poseObservations.isEmpty {
             let observationCount = poseObservations.count

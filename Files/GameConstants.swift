@@ -14,7 +14,7 @@ struct GameConstants {
     static let maxPoseObservations = 45
     static let noObservationFrameLimit = 20
     static let maxDistanceWithCurrentTrajectory: CGFloat = 165
-    static let maxTrajectoryInFlightPoseObservations = 25
+    static let maxTrajectoryInFlightPoseObservations = 10
     
     static let bodyPoseDetectionMinConfidence: VNConfidence = 0.6
     static let trajectoryDetectionMinConfidence: VNConfidence = 0.9

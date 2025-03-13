@@ -18,19 +18,17 @@ class ContentViewModel {
     
     var manualHoopSelectorState: AreaSelectorState = .none
     var lastShotMetrics: ShotMetrics? = nil
-    var playerStats: PlayerStats? = nil
+    var playerStats = PlayerStats()
     var setupGuideLabel: String? = nil
     var setupStateModel = SetupStateModel()
     var isFinishButtonPressed = false
     var isRecordingPermissionDenied = false
     var isVideoEnded = false
     
-//    var hoopDetectionRequest: VNCoreMLRequest
-    
-    func reset() {        
+    func reset() {
         manualHoopSelectorState = .none
         lastShotMetrics = nil
-        playerStats = nil
+        playerStats.reset()
         setupGuideLabel = nil
         setupStateModel = .init()
         isFinishButtonPressed = false

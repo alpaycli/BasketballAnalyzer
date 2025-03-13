@@ -40,10 +40,10 @@ extension HomeView {
      var makeAndAttemptsView: some View {
         HStack {
             VStack {
-                Text(viewModel.playerStats?.totalScore.formatted() ?? "0")
+                Text(viewModel.playerStats.totalScore.formatted())
                     .font(.largeTitle)
                     .fontDesign(.monospaced)
-                    .animation(.default, value: viewModel.playerStats?.totalScore)
+                    .animation(.default, value: viewModel.playerStats.totalScore)
                     .contentTransition(.numericText())
                 Text("make")
                     .font(.headline.uppercaseSmallCaps())
@@ -53,10 +53,10 @@ extension HomeView {
                 .font(.largeTitle)
                 .padding(.horizontal)
             VStack {
-                Text(viewModel.playerStats?.shotCount.formatted() ?? "0")
+                Text(viewModel.playerStats.shotCount.formatted())
                     .font(.largeTitle)
                     .fontDesign(.monospaced)
-                    .animation(.default, value: viewModel.playerStats?.totalScore)
+                    .animation(.default, value: viewModel.playerStats.totalScore)
                     .contentTransition(.numericText())
                 Text("attempt")
                     .font(.headline.uppercaseSmallCaps())

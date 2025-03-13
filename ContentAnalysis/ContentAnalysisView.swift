@@ -20,13 +20,9 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
         let vc = ContentAnalysisViewController(
             recordedVideoSource: isTestMode ? getTestVideo() : recordedVideoSource,
             isTestMode: isTestMode,
-            viewModel: viewModel,
-            delegate: context.coordinator,
-            cameraVCDelegate: context.coordinator
+            viewModel: viewModel
         )
-        
-        context.coordinator.vc = vc
-        
+                
         return vc
     }
     
@@ -44,31 +40,5 @@ struct ContentAnalysisView: UIViewControllerRepresentable {
         case .set:
             Task { await uiViewController.setHoop() }
         }
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, CameraViewControllerOutputDelegate, ContentAnalysisVCDelegate {
-        
-        let parent: ContentAnalysisView
-        var vc: ContentAnalysisViewController?
-        
-        init(_ parent: ContentAnalysisView) {
-            self.parent = parent
-        }
-        
-        // Buffers from camera feed are sent here for analysis.
-        func cameraViewController(_ controller: CameraViewController, didReceiveBuffer buffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) {
-            vc?.cameraVCDelegateAction(controller, didReceiveBuffer: buffer, orientation: orientation)
-        }
-        
-        func showLastShowMetrics(metrics: ShotMetrics, playerStats: PlayerStats) {
-            parent.viewModel.lastShotMetrics = metrics
-            parent.viewModel.playerStats = playerStats
-        }
-        
-        
     }
 }
