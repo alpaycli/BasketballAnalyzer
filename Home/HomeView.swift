@@ -31,17 +31,7 @@ struct HomeView: View {
     // MARK: - Others
     
     @State var showPortraitAlert = false
-    
-    var showSetupStateLabels: Bool {
-        guard viewModel.manualHoopSelectorState != .inProgress else { return false }
-        
-        return !viewModel.setupStateModel.isAllDone
-    }
-    
-    var showMetricsAndScore: Bool {
-        !viewModel.isVideoEnded && !viewModel.isFinishButtonPressed
-    }
-    
+   
     var pub = NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
     let editHoopTip = EditHoopTip()
     @Namespace private var namespace
@@ -58,32 +48,22 @@ struct HomeView: View {
                 }
             }
             .disabled(showPortraitAlert || !(GameManager.shared.stateMachine.currentState is GameManager.InactiveState))
+            .overlay {
+                if showPortraitAlert {
+                    portraitAlertView
+                }
+            }
             .navigationDestination(isPresented: $isTestMode) {
                 contentViewWithRecordedVideo(isTestMode: isTestMode)
                     .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
-                    .overlay {
-                        if showPortraitAlert {
-                            portraitAlertView
-                        }
-                    }
             }
             .navigationDestination(item: $recordedVideoSource) { item in
                 contentViewWithRecordedVideo(item)
                     .navigationTransition(.zoom(sourceID: "recordedVidedZoom", in: namespace))
-                    .overlay {
-                        if showPortraitAlert {
-                            portraitAlertView
-                        }
-                    }
             }
             .navigationDestination(isPresented: $isLiveCameraSelected) {
                 contentViewWithLiveCamera
                     .navigationTransition(.zoom(sourceID: "liveCameraZoom", in: namespace))
-                    .overlay {
-                        if showPortraitAlert {
-                            portraitAlertView
-                        }
-                    }
             }
             .fullScreenCover(isPresented: $isShowGuidesView) {
                 NavigationStack {
@@ -123,11 +103,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .overlay {
-                if showPortraitAlert {
-                    portraitAlertView
-                }
-            }
+
             .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], onCompletion: { result in
                 switch result {
                 case let .success(url):

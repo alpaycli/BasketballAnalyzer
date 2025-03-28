@@ -4,8 +4,6 @@ import SwiftUI
 @main
 struct MyApp: App {
     init() {
-//        UserDefaults.standard.removeObject(forKey: "isFirstLaunch")
-//        try? Tips.resetDatastore()
         try? Tips.configure(
             [
                 .datastoreLocation(.applicationDefault)

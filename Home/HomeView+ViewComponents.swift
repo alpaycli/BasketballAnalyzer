@@ -47,7 +47,6 @@ extension HomeView {
                     .contentTransition(.numericText())
                 Text("make")
                     .font(.headline.uppercaseSmallCaps())
-//                            .foregroundStyle(.secondary)
             }
             Text("/")
                 .font(.largeTitle)
@@ -60,7 +59,6 @@ extension HomeView {
                     .contentTransition(.numericText())
                 Text("attempt")
                     .font(.headline.uppercaseSmallCaps())
-//                            .foregroundStyle(.secondary)
             }
         }
         .foregroundStyle(.white.gradient)
@@ -69,13 +67,11 @@ extension HomeView {
      var setupStatesView: some View {
         VStack(alignment: .leading) {
             Text("Hoop Detected: " + "\(viewModel.setupStateModel.hoopDetected ? "✅" : "❌")")
-//            Text("Hoop Contours Detected: " + "\(viewModel.setupStateModel.hoopContoursDetected ? "✅" : "❌")")
             Text("Player Detected: " + "\(viewModel.setupStateModel.playerDetected ? "✅" : "❌")")
         }
         .fontDesign(.monospaced)
         .foregroundStyle(.black)
         .padding()
-        //                .frame(width: 200, height: 100)
         .background(.ultraThinMaterial, in: .rect(cornerRadius: 15))
     }
     
@@ -117,24 +113,9 @@ extension HomeView {
             +
             Text(metrics.releaseAngle.formatted() + "°")
                 .fontWeight(.bold)
-//                            .foregroundStyle(.orange)
-            
-//                        Text("Ball Speed: ")
-//                            .foregroundStyle(.white)
-//                        +
-//                        Text(lastShotMetrics.speed.formatted() + " MPH")
-//                            .fontWeight(.bold)
-//                            .foregroundStyle(.orange)
             
             Text(metrics.shotResult.description)
                 .fontWeight(.bold)
-//            if metrics.shotResult != .score {
-//                Text("Miss Reason: ")
-//                +
-//                Text(metrics.shotResult.description)
-//                    .fontWeight(.bold)
-////                                .foregroundStyle(.orange)
-//            }
         }
         .foregroundStyle(.white)
         .padding()

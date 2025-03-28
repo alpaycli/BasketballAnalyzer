@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+/// Used for communication between ``HomeView`` and ``ContentAnalysisViewController``.
 @Observable
 class ContentViewModel {
    /// The center point of the detected hoop in view coordinates.
@@ -25,6 +26,20 @@ class ContentViewModel {
    var isRecordingPermissionDenied = false
    var isVideoEnded = false
    
+   var showSetupStateLabels: Bool {
+       guard manualHoopSelectorState != .inProgress else { return false }
+       
+       return !setupStateModel.isAllDone
+   }
+   
+   var showMetricsAndScore: Bool {
+       !isVideoEnded && !isFinishButtonPressed
+   }
+   
+   var isHoopPlaced: Bool {
+      setupStateModel.hoopDetected
+   }
+   
    func reset() {
       manualHoopSelectorState = .none
       lastShotMetrics = nil
@@ -34,9 +49,5 @@ class ContentViewModel {
       isFinishButtonPressed = false
       isRecordingPermissionDenied = false
       isVideoEnded = false
-   }
-   
-   var isHoopPlaced: Bool {
-      setupStateModel.hoopDetected
    }
 }

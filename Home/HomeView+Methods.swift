@@ -10,7 +10,7 @@ import SwiftUI
 
 // MARK: - Methods
 
-extension HomeView {
+extension HomeView { 
     func handleImportedVideoFileURL(_ url: URL) {
         let selectedFileURL = url.absoluteURL
         if selectedFileURL.startAccessingSecurityScopedResource() {
@@ -35,7 +35,6 @@ extension HomeView {
                 }
         }
         Task {
-            #warning("")
             GameManager.shared.reset()
             viewModel.reset()
             GameManager.shared.stateMachine.enter(GameManager.SetupCameraState.self)

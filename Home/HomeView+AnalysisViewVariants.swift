@@ -31,8 +31,13 @@ extension HomeView {
                         .position(point)
                 }
             }
+            .overlay {
+                if showPortraitAlert {
+                    portraitAlertView
+                }
+            }
             .overlay(alignment: .top) {
-                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
+               if let setupGuideLabel = viewModel.setupGuideLabel, viewModel.showSetupStateLabels {
                     Text(setupGuideLabel)
                         .font(.largeTitle)
                         .padding()
@@ -54,17 +59,17 @@ extension HomeView {
                 }
             }
             .overlay(alignment: .bottom) {
-                if showMetricsAndScore {
+               if viewModel.showMetricsAndScore {
                     makeAndAttemptsView
                 }
             }
             .overlay(alignment: .bottomLeading) {
-                if let lastShotMetrics = viewModel.lastShotMetrics, showMetricsAndScore {
+               if let lastShotMetrics = viewModel.lastShotMetrics, viewModel.showMetricsAndScore {
                     lastShotMetricsView(lastShotMetrics)
                 }
             }
             .overlay {
-                if showSetupStateLabels {
+               if viewModel.showSetupStateLabels {
                     setupStatesView
                 }
             }
@@ -80,7 +85,7 @@ extension HomeView {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
             .overlay(alignment: .top) {
-                if let setupGuideLabel = viewModel.setupGuideLabel, showSetupStateLabels {
+               if let setupGuideLabel = viewModel.setupGuideLabel, viewModel.showSetupStateLabels {
                     Text(setupGuideLabel)
                         .font(.largeTitle)
                         .padding()
@@ -100,12 +105,12 @@ extension HomeView {
                 }
             }
             .overlay(alignment: .bottom) {
-                if showMetricsAndScore {
+               if viewModel.showMetricsAndScore {
                     makeAndAttemptsView
                 }
             }
             .overlay(alignment: .bottomLeading) {
-                if let lastShotMetrics = viewModel.lastShotMetrics, showMetricsAndScore {
+               if let lastShotMetrics = viewModel.lastShotMetrics, viewModel.showMetricsAndScore {
                     lastShotMetricsView(lastShotMetrics)
                 }
             }
@@ -118,8 +123,13 @@ extension HomeView {
                 }
             }
             .overlay {
-                if showSetupStateLabels {
+               if viewModel.showSetupStateLabels {
                     setupStatesView
+                }
+            }
+            .overlay {
+                if showPortraitAlert {
+                    portraitAlertView
                 }
             }
             .toolbarVisibility(.hidden, for: .navigationBar)
