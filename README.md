@@ -31,6 +31,9 @@ TipKit
 
 AVFoundation
 
+## Usage
+Clone this repo. Downloding does not work properly due to it's being a .swiftpm project.
+
 ## Note
 Last version of the project does not contain 'Hoop Detector' machine learning model due to size restrictions for the challenge, and only manual hoop selection is available.
 
